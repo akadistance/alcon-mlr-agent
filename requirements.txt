@@ -1,0 +1,23 @@
+# Core AI and language processing
+langchain>=0.3.0,<1.0.0
+langchain-anthropic>=0.3.0,<1.0.0
+langchain-core>=0.3.0,<1.0.0
+python-dotenv==1.0.1
+pydantic>=2.7.4,<3.0.0
+
+
+# Web backend requirements
+flask==3.0.0
+flask-cors==4.0.0
+gunicorn==21.2.0
+
+
+# Document processing
+python-pptx
+pdfplumber
+python-docx
+
+# OCR (Optical Character Recognition)
+pytesseract
+Pillow
+anthropic

@@ -1,0 +1,880 @@
+/* Tailwind CSS base styles */
+/* stylelint-disable-next-line at-rule-no-unknown */
+@tailwind base;
+/* stylelint-disable-next-line at-rule-no-unknown */
+@tailwind components;
+/* stylelint-disable-next-line at-rule-no-unknown */
+@tailwind utilities;
+
+/* Using system fonts as per OpenAI Apps SDK guidelines */
+
+/* Respect system dark mode preference - OpenAI Apps SDK Components */
+:root {
+  color-scheme: light dark;
+  
+  /* Enterprise Color System - Light Mode */
+  --surface-primary: #FFFFFF;
+  --surface-secondary: #F8F7F5;
+  --surface-tertiary: #F0EDE8;
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-tertiary: #999999;
+  --border-subtle: #E8E5E0;
+  --accent-primary: #0066CC;
+  --accent-success: #0A8754;
+  --accent-warning: #D97706;
+  --accent-danger: #DC2626;
+  
+  /* Official Alcon Brand Colors (legacy) */
+  --alcon-primary: #003595;
+  --alcon-primary-hover: #002a7a;
+  --alcon-primary-light: #1a4ba3;
+  --alcon-cyan: #00AEEF;
+  --alcon-dark-teal: #007483;
+  --alcon-purple: #4E0F78;
+  --alcon-green: #00AE44;
+  --alcon-orange: #FF6B12;
+  --alcon-red: #9B1A2F;
+  --alcon-secondary: #0079c1;
+  --alcon-accent: #00a0af;
+  --alcon-success: #49a942;
+  
+  /* Premium Whites and Grays */
+  --pure-white: #ffffff;
+  --pearl-white: #fefefe;
+  --cloud-white: #f8fafb;
+  --silver-mist: #f1f4f7;
+  --steel-gray: #e2e8f0;
+  --slate-gray: #cbd5e1;
+  
+  /* Text Colors */
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --text-quaternary: #94a3b8;
+  --text-inverse: #ffffff;
+  
+  /* Claude-style Surface Colors */
+  --background: #ffffff;
+  --background-alt: #f9f9f9;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-hover: #f5f5f5;
+  --surface-pressed: #eeeeee;
+  --surface-primary: #ffffff;
+  
+  /* Claude-style Border Colors */
+  --border: #e0e0e0;
+  --border-light: #e5e5e5;
+  --border-medium: #d0d0d0;
+  --border-focus: var(--alcon-primary);
+  
+  /* Premium Shadows */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+  
+  /* Premium Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--alcon-primary) 0%, var(--alcon-secondary) 100%);
+  --gradient-surface: linear-gradient(145deg, var(--pure-white) 0%, var(--pearl-white) 100%);
+  --gradient-glass: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+  
+  /* Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-full: 9999px;
+  
+  /* Legacy support */
+  --primary: var(--alcon-primary);
+  --primary-hover: var(--alcon-primary-hover);
+  --primary-blue: var(--alcon-primary);
+  --text: var(--text-primary);
+  --secondary-bg: var(--background-alt);
+  --accent: var(--alcon-primary);
+  --card-bg: var(--surface);
+  --hover-bg: var(--surface-hover);
+  
+  /* ChatGPT-inspired animation timing functions */
+  --spring-common: cubic-bezier(0.37, 0.55, 0.86, 0.88);
+  --spring-fast: cubic-bezier(0.4, 0, 0.2, 1);
+  --spring-slow: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  
+  /* Enhanced spacing system */
+  --spacing: 0.25rem;
+  
+  /* Better animation durations */
+  --duration-fast: 0.15s;
+  --duration-normal: 0.25s;
+  --duration-slow: 0.4s;
+  --duration-slower: 0.7s;
+
+  /* Additional CSS variables from provided stylesheet */
+  --composer-surface: #ffffff;
+  --composer-surface-secondary: #f7f7f8;
+  --composer-surface-tertiary: #ececf1;
+  --composer-border: #e5e5e5;
+  --composer-border-hover: #d1d5db;
+  --composer-text-primary: #212121;
+  --composer-text-secondary: #6b7280;
+  --composer-text-tertiary: #9ca3af;
+  --composer-accent: var(--alcon-primary);
+  --composer-accent-hover: var(--alcon-primary-hover);
+
+  /* Main surface variables */
+  --main-surface-primary: #ffffff;
+  --main-surface-secondary: #f7f7f8;
+  --main-surface-tertiary: #ececf1;
+  --main-surface-quaternary: #d1d5db;
+
+  /* Interactive state variables */
+  --interactive-primary: var(--alcon-primary);
+  --interactive-primary-hover: var(--alcon-primary-hover);
+  --interactive-secondary: #6b7280;
+  --interactive-secondary-hover: #4b5563;
+  --interactive-tertiary: #9ca3af;
+  --interactive-tertiary-hover: #6b7280;
+
+  /* Sidebar variables */
+  --sidebar-surface: #f7f7f8;
+  --sidebar-surface-hover: #ececf1;
+  --sidebar-border: #e5e5e5;
+  --sidebar-text-primary: #212121;
+  --sidebar-text-secondary: #6b7280;
+
+  /* Additional accent colors */
+  --accent-blue: #3b82f6;
+  --accent-green: #10b981;
+  --accent-yellow: #f59e0b;
+  --accent-purple: #8b5cf6;
+  --accent-pink: #ec4899;
+  --accent-orange: #f97316;
+  --accent-red: #ef4444;
+  --accent-cyan: #06b6d4;
+}
+
+.dark {
+  /* Claude-style Dark Theme Colors */
+  --alcon-primary: #4a90e2;
+  --alcon-primary-hover: #357abd;
+  --alcon-primary-light: #6ba3ea;
+  --alcon-secondary: #00a0df;
+  --alcon-accent: #00c4d4;
+  --alcon-success: #5cb85c;
+  
+  /* Claude-style Dark Surfaces */
+  --background: #212121;
+  --background-alt: #2a2a2a;
+  --surface: #2a2a2a;
+  --surface-elevated: #2a2a2a;
+  --surface-hover: #333333;
+  --surface-pressed: #3a3a3a;
+  --surface-primary: #2a2a2a;
+  
+  /* Claude-style Dark Borders */
+  --border: #404040;
+  --border-light: #3a3a3a;
+  --border-medium: #505050;
+  
+  /* Claude-style Dark Text Colors */
+  --text-primary: #ececec;
+  --text-secondary: #b4b4b4;
+  --text-tertiary: #8e8e8e;
+  --text-quaternary: #707070;
+  --text-inverse: #212121;
+  
+  /* Dark Premium Shadows */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.6);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.3);
+  
+  /* Dark Premium Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--alcon-primary) 0%, var(--alcon-secondary) 100%);
+  --gradient-surface: linear-gradient(145deg, var(--pearl-white) 0%, var(--cloud-white) 100%);
+  --gradient-glass: linear-gradient(145deg, rgba(15, 17, 19, 0.9) 0%, rgba(15, 17, 19, 0.7) 100%);
+  
+  /* Additional CSS variables for dark mode */
+  --composer-surface: #212121;
+  --composer-surface-secondary: #2f2f2f;
+  --composer-surface-tertiary: #40414f;
+  --composer-border: #4d4d4f;
+  --composer-border-hover: #565869;
+  --composer-text-primary: #ececf1;
+  --composer-text-secondary: #c5c5d2;
+  --composer-text-tertiary: #8e8ea0;
+  --composer-accent: var(--alcon-primary);
+  --composer-accent-hover: var(--alcon-primary-hover);
+
+  /* Main surface variables for dark mode */
+  --main-surface-primary: #212121;
+  --main-surface-secondary: #2f2f2f;
+  --main-surface-tertiary: #40414f;
+  --main-surface-quaternary: #565869;
+
+  /* Interactive state variables for dark mode */
+  --interactive-primary: var(--alcon-primary);
+  --interactive-primary-hover: var(--alcon-primary-hover);
+  --interactive-secondary: #c5c5d2;
+  --interactive-secondary-hover: #ececf1;
+  --interactive-tertiary: #8e8ea0;
+  --interactive-tertiary-hover: #c5c5d2;
+
+  /* Sidebar variables for dark mode */
+  --sidebar-surface: #2f2f2f;
+  --sidebar-surface-hover: #40414f;
+  --sidebar-border: #4d4d4f;
+  --sidebar-text-primary: #ececf1;
+  --sidebar-text-secondary: #c5c5d2;
+  
+  /* Legacy support */
+  --primary: var(--alcon-primary);
+  --primary-hover: var(--alcon-primary-hover);
+  --primary-blue: var(--alcon-primary);
+  --text: var(--text-primary);
+  --secondary-bg: var(--background-alt);
+  --accent: var(--alcon-primary);
+  --card-bg: var(--surface);
+  --hover-bg: var(--surface-hover);
+}
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+  /* System font stack - OpenAI Apps SDK guidelines */
+  font-family: 'Open Sans', Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  font-weight: 400;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Consistent scaling at all zoom levels */
+html {
+  font-size: 15px; /* Smaller base for better density */
+}
+
+/* High DPI support only */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+code {
+  font-family: 'Fira Code', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--secondary-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Global input field reset and styling */
+input, textarea, select, button {
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+input, textarea, select {
+  color: var(--text-primary);
+  background: transparent;
+  vertical-align: middle;
+  text-align: left;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-tertiary);
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* Alcon Logo in Bottom Right */
+.alcon-logo-watermark {
+  position: fixed;
+  bottom: -20px; /* Much closer to the bottom edge */
+  right: 20px;
+  width: 120px;
+  height: auto;
+  opacity: 1; /* Full opacity - 100% visible */
+  z-index: 1;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  filter: none; /* Remove grayscale to preserve blue color */
+}
+
+.alcon-logo-watermark:hover {
+  opacity: 1; /* Keep at full opacity on hover */
+}
+
+/* Responsive logo sizing */
+@media (max-width: 768px) {
+  .alcon-logo-watermark {
+    width: 80px;
+    bottom: 2px; /* Much closer to bottom on tablets */
+    right: 15px;
+    opacity: 1; /* Full opacity on mobile too */
+  }
+}
+
+@media (max-width: 480px) {
+  .alcon-logo-watermark {
+    width: 60px;
+    bottom: 2px; /* Much closer to bottom on mobile */
+    right: 10px;
+    opacity: 1; /* Full opacity on mobile too */
+  }
+}
+
+/* Selection styling */
+::selection {
+  background-color: var(--primary-blue);
+  color: white;
+}
+
+/* Remove default focus rings; we use subtle shadows instead */
+textarea:focus, button:focus, input:focus {
+  outline: none;
+}
+
+/* Ensure no default focus ring on the input container */
+.input-shell:focus, .input-shell:focus-within {
+  outline: none !important;
+  box-shadow: var(--shadow-sm), 0 0 0 0 rgba(59,130,246,0); /* suppress UA ring */
+}
+
+/* Force-remove UA focus ring on textareas (Chromium/Edge/Firefox/WebKit) */
+.input-shell textarea,
+.input-shell textarea:focus,
+.input-shell textarea:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Also suppress on any focusable inside the input shell */
+.input-shell :focus,
+.input-shell :focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
+/* ============================================================================
+   NEW ANIMATIONS AND KEYFRAMES FROM PROVIDED CSS
+   ============================================================================ */
+
+/* Enhanced animations from the provided CSS file */
+@keyframes hive-log-fadeout {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer-skeleton {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes pulse-dot {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes float-sidebar-in {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-open {
+  0% {
+    transform: translateY(-100%) scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes icon-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes loading-results-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes loading-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes scalePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes diagonalSweep {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+/* Animation utility classes */
+.animate-hive-log-fadeout {
+  animation: hive-log-fadeout 0.3s ease-out forwards;
+}
+
+.animate-shimmer-skeleton {
+  animation: shimmer-skeleton 1.5s ease-in-out infinite;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite both;
+}
+
+.animate-float-sidebar-in {
+  animation: float-sidebar-in 0.3s ease-out;
+}
+
+.animate-toast-open {
+  animation: toast-open 0.3s ease-out;
+}
+
+.animate-icon-shimmer {
+  animation: icon-shimmer 1.5s ease-in-out infinite;
+}
+
+.animate-loading-results-shimmer {
+  animation: loading-results-shimmer 1.5s ease-in-out infinite;
+}
+
+.animate-loading-shimmer {
+  animation: loading-shimmer 1.5s ease-in-out infinite;
+}
+
+.animate-scale-pulse {
+  animation: scalePulse 2s ease-in-out infinite;
+}
+
+.animate-diagonal-sweep {
+  animation: diagonalSweep 0.6s ease-out;
+}
+
+/* ============================================================================
+   ADDITIONAL UTILITY CLASSES FROM PROVIDED CSS
+   ============================================================================ */
+
+/* Shimmer effect utilities */
+.shimmer-bg {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background-size: 200px 100%;
+  animation: shimmer-skeleton 1.5s ease-in-out infinite;
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #ccc, #999, #ccc);
+  background-size: 200px 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-skeleton 1.5s ease-in-out infinite;
+}
+
+/* Loading skeleton utilities */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer-skeleton 1.5s ease-in-out infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background-size: 200px 100%;
+}
+
+/* Focus utilities */
+.focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--composer-accent);
+}
+
+.focus-ring-inset {
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px var(--composer-accent);
+}
+
+/* Interactive state utilities */
+.interactive-hover {
+  transition: all 0.2s ease;
+}
+
+.interactive-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.interactive-active {
+  transition: all 0.1s ease;
+}
+
+.interactive-active:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Glass morphism utilities */
+.glass-light {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Surface utilities */
+.surface-elevated {
+  background: var(--main-surface-primary);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.surface-floating {
+  background: var(--main-surface-primary);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+}
+
+/* Text utilities */
+.text-gradient {
+  background: linear-gradient(135deg, var(--alcon-primary), var(--alcon-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-accent {
+  background: linear-gradient(135deg, var(--composer-accent), var(--composer-accent-hover));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ============================================================================
+   CHATGPT-STYLE INPUT BOX CSS CLASSES
+   ============================================================================ */
+
+/* Token-based color system for ChatGPT-style input */
+:root {
+  --token-bg-primary: #ffffff;
+  --token-text-primary: #212121;
+  --token-text-secondary: #6b7280;
+  --token-text-tertiary: #9ca3af;
+  --token-border: #e5e5e5;
+  --token-surface: #f7f7f8;
+  --token-surface-hover: #ececf1;
+  --token-accent: var(--alcon-primary);
+  --token-accent-hover: var(--alcon-primary-hover);
+}
+
+.dark {
+  --token-bg-primary: #212121;
+  --token-text-primary: #ececf1;
+  --token-text-secondary: #c5c5d2;
+  --token-text-tertiary: #8e8ea0;
+  --token-border: #4d4d4f;
+  --token-surface: #2f2f2f;
+  --token-surface-hover: #40414f;
+  --token-accent: var(--alcon-primary);
+  --token-accent-hover: var(--alcon-primary-hover);
+}
+
+/* ChatGPT-style input box classes */
+.bg-token-bg-primary {
+  background-color: var(--token-bg-primary);
+}
+
+.text-token-text-primary {
+  color: var(--token-text-primary);
+}
+
+.text-token-text-secondary {
+  color: var(--token-text-secondary);
+}
+
+.text-token-text-tertiary {
+  color: var(--token-text-tertiary);
+}
+
+.border-token-border {
+  border-color: var(--token-border);
+}
+
+.bg-token-surface {
+  background-color: var(--token-surface);
+}
+
+.bg-token-surface-hover {
+  background-color: var(--token-surface-hover);
+}
+
+.text-token-accent {
+  color: var(--token-accent);
+}
+
+.bg-token-accent {
+  background-color: var(--token-accent);
+}
+
+.hover\:bg-token-accent:hover {
+  background-color: var(--token-accent);
+}
+
+.hover\:text-token-accent:hover {
+  color: var(--token-accent);
+}
+
+/* Composer button styling */
+.composer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--token-text-secondary);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.composer-btn:hover {
+  background-color: var(--token-surface-hover);
+  color: var(--token-text-primary);
+}
+
+.composer-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--token-accent);
+}
+
+/* ProseMirror styling for contentEditable */
+.ProseMirror {
+  outline: none;
+  border: none;
+  background: transparent;
+  color: var(--token-text-primary);
+  font-size: 1rem;
+  line-height: 1.6;
+  min-height: 1.5rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  resize: none;
+}
+
+.ProseMirror p {
+  margin: 0;
+  padding: 0;
+}
+
+.ProseMirror .placeholder {
+  color: var(--token-text-tertiary);
+  pointer-events: none;
+  user-select: none;
+}
+
+.ProseMirror p[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--token-text-tertiary);
+  pointer-events: none;
+  user-select: none;
+  position: absolute;
+}
+
+.ProseMirror:focus p[data-placeholder]:empty::before {
+  color: var(--token-text-tertiary);
+}
+
+.ProseMirror .ProseMirror-trailingBreak {
+  display: inline;
+}
+
+/* Grid template areas for ChatGPT input layout */
+[grid-template-areas="'header_header_header'_'leading_primary_trailing'_'._footer_.'"] {
+  grid-template-areas: 
+    'header header header'
+    'leading primary trailing'
+    '. footer .';
+}
+
+/* Expanded composer grid layout */
+.group-data-expanded\/composer:has([data-expanded="true"]) {
+  grid-template-areas: 
+    'header header header'
+    'primary primary primary'
+    'leading footer trailing';
+}
+
+/* Shadow utilities */
+.shadow-short {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Scrollbar utilities */
+[scrollbar-width="thin"] {
+  scrollbar-width: thin;
+}
+
+.default-browser {
+  scrollbar-width: auto;
+}
+
+.vertical-scroll-fade-mask {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+}
+
+/* View transition utilities */
+[view-transition-name="var(--vt-disclaimer)"] {
+  view-transition-name: var(--vt-disclaimer);
+}
+
+[view-transition-name="var(--vt-composer-speech-button)"] {
+  view-transition-name: var(--vt-composer-speech-button);
+}
+
+/* ProseMirror parent styling */
+._prosemirror-parent_1dsxi_2 {
+  position: relative;
+  flex: 1;
+  overflow: auto;
+  max-height: max(35svh, 5rem);
+  max-height: 13rem;
+  scrollbar-width: thin;
+}
+
+/* Fallback textarea styling */
+._fallbackTextarea_1dsxi_2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--token-text-primary);
+  font-size: 1rem;
+  line-height: 1.6;
+  resize: none;
+  overflow: hidden;
+}
+
+/* Icon styling */
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.icon-sm {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+/* Responsive utilities */
+@media (min-width: 768px) {
+  .md\:px-\[60px\] {
+    padding-left: 3.75rem;
+    padding-right: 3.75rem;
+  }
+}
