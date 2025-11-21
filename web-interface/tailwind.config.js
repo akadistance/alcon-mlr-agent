@@ -9,10 +9,10 @@ module.exports = {
       colors: {
         // Modern ChatGPT-inspired color system
         chatgpt: {
-          // Light mode colors (ChatGPT-inspired)
-          bg: '#ffffff',
-          'bg-secondary': '#f7f7f8',
-          'bg-tertiary': '#ececf1',
+          // Light mode colors (ChatGPT-inspired) - Warmer white tones
+          bg: '#faf9f7',
+          'bg-secondary': '#f5f4f2',
+          'bg-tertiary': '#f0efed',
           'border': '#e5e5e5',
           'border-hover': '#d1d5db',
           'text-primary': '#212121',
@@ -21,16 +21,16 @@ module.exports = {
           'accent': 'var(--alcon-primary)',
           'accent-hover': 'var(--alcon-primary-hover)',
         },
-        // Dark mode colors (ChatGPT-inspired)
+        // Dark mode colors (Grok-inspired)
         'chatgpt-dark': {
-          bg: '#212121',
-          'bg-secondary': '#2f2f2f',
-          'bg-tertiary': '#40414f',
-          'border': '#4d4d4f',
-          'border-hover': '#565869',
-          'text-primary': '#ececf1',
-          'text-secondary': '#c5c5d2',
-          'text-tertiary': '#8e8ea0',
+          bg: '#1a1a1a',
+          'bg-secondary': '#252525',
+          'bg-tertiary': '#2a2a2a',
+          'border': '#3a3a3a',
+          'border-hover': '#404040',
+          'text-primary': '#ffffff',
+          'text-secondary': '#d0d0d0',
+          'text-tertiary': '#a0a0a0',
           'accent': 'var(--alcon-primary)',
           'accent-hover': 'var(--alcon-primary-hover)',
         },

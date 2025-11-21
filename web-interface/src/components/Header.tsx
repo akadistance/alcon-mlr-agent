@@ -18,7 +18,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         <div className="h-full max-w-full mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
-              className="p-2 rounded-lg hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-colors lg:hidden" 
+              className="p-2 rounded-lg hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center" 
               onClick={onToggleSidebar}
               title="Toggle sidebar"
               aria-label="Toggle sidebar"
@@ -33,7 +33,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           </div>
           <div className="flex items-center gap-1">
             <button 
-              className="p-2 rounded-lg hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-colors" 
+              className="p-2 rounded-lg hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center" 
               title="Help"
               aria-label="Help"
             >
@@ -41,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             </button>
             <button 
               ref={settingsRef}
-              className="p-2 rounded-lg hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-colors" 
+              className="p-2 rounded-lg hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center" 
               title="Settings" 
               onClick={() => setIsSettingsOpen(true)}
               aria-label="Settings"

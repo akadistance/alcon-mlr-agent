@@ -24,18 +24,8 @@ function App() {
   return (
     <ThemeProvider>
       <ChatProvider>
-        {/* Main container - simple flex, no overflow hidden here */}
+        {/* Main container - Grok style dark gray background */}
         <div className="flex h-screen bg-chatgpt-bg dark:bg-chatgpt-dark-bg">
-          
-          {/* Background decorations - BEHIND everything with pointer-events-none */}
-          <div className="fixed inset-0 pointer-events-none z-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-chatgpt-bg-secondary via-chatgpt-bg to-chatgpt-bg-tertiary dark:from-chatgpt-dark-bg-secondary dark:via-chatgpt-dark-bg dark:to-chatgpt-dark-bg-tertiary opacity-50"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,53,149,0.03),transparent_50%)] dark:bg-[radial-gradient(circle_at_50%_50%,rgba(0,53,149,0.08),transparent_50%)]"></div>
-            
-            {/* Floating elements */}
-            <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-alcon-blue/10 to-transparent rounded-full blur-xl animate-float"></div>
-            <div className="absolute bottom-20 right-20 w-24 h-24 bg-gradient-to-br from-alcon-blue/10 to-transparent rounded-full blur-xl animate-float" style={{ animationDelay: '1s' }}></div>
-          </div>
 
           {/* Sidebar - will be static on desktop, fixed on mobile */}
           <Sidebar

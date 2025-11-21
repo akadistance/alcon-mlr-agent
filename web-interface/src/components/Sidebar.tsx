@@ -1,6 +1,6 @@
-import React, { useContext, useState, useEffect, KeyboardEvent } from 'react';
+import React, { useContext, useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { ChatContext } from '../ChatContext';
-import { Plus, Search, MoreHorizontal, Share, Edit, Archive, Trash2, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Search, MoreHorizontal, Share, Edit, Archive, Trash2, PanelLeftClose, MessageSquare, User } from 'lucide-react';
 import { Conversation } from '../types';
 
 interface SidebarProps {
@@ -10,8 +10,6 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-// Simplified: single Recent list instead of date-grouped sections
-
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggleCollapse }) => {
   const { 
     sortedConversations, 
@@ -19,37 +17,42 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
     createNewConversation, 
     switchConversation, 
     deleteConversation, 
-    updateConversationTitle 
+    updateConversationTitle
   } = useContext(ChatContext);
   
-  // Debug logging
-  console.log('📋 Sidebar conversations:', sortedConversations);
-  console.log('🎯 Current conversation ID:', currentConversationId);
-  
-  // Removed group expand/collapse; using a single Recent section
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [activeNav, setActiveNav] = useState<'search' | 'chat'>('chat');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Build a single "Recent" list sorted by most recent updatedAt/createdAt/id
-  const allRecentConversations = [...sortedConversations].sort((a, b) => {
+  // Build a single list sorted by most recent updatedAt/createdAt/id
+  const allConversations = [...sortedConversations].sort((a, b) => {
     const getTime = (c: Conversation) => {
       const t: any = (c.updatedAt as any) || (c.createdAt as any) || c.id;
       const n = Number(t);
-      if (!isNaN(n)) return n; // numeric timestamp-like id
+      if (!isNaN(n)) return n;
       const d = new Date(t);
       return isNaN(d.getTime()) ? 0 : d.getTime();
     };
     return getTime(b) - getTime(a);
   });
 
-  // Filter conversations based on search query
-  const recentConversations = searchQuery.trim() 
-    ? allRecentConversations.filter(conv => 
-        conv.title.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : allRecentConversations;
+  // Search through conversations (titles and messages)
+  const filteredConversations = searchQuery.trim() 
+    ? allConversations.filter(conv => {
+        // Search in title
+        if (conv.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+          return true;
+        }
+        // Search in messages
+        return conv.messages.some(msg => 
+          msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      })
+    : allConversations;
 
   const startEditing = (convId: string, currentTitle: string) => {
     setEditingId(convId);
@@ -82,16 +85,36 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
   };
 
   const handleShare = (convId: string) => {
-    // TODO: Implement share functionality
     console.log('Share conversation:', convId);
     closeMenu();
   };
 
   const handleArchive = (convId: string) => {
-    // TODO: Implement archive functionality
     console.log('Archive conversation:', convId);
     closeMenu();
   };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setActiveNav('search');
+        setIsSearchActive(true);
+        // Focus search input after a brief delay to ensure it's rendered
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 100);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'j') {
+        e.preventDefault();
+        setActiveNav('chat');
+        createNewConversation();
+        if (window.innerWidth <= 768 && onClose) onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [createNewConversation, onClose]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -100,7 +123,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
         closeMenu();
       }
     };
-
     document.addEventListener('click', handleClickOutside);
     return () => {
       document.removeEventListener('click', handleClickOutside);
@@ -108,20 +130,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
   }, [openMenuId]);
 
   const renderConversationItem = (conv: Conversation) => (
-          <div
-            key={conv.id}
-            className={`
-              group relative px-3 py-2 mx-2 rounded-xl cursor-pointer transition-all duration-200
-              ${conv.id === currentConversationId 
-                ? 'bg-alcon-blue/10 dark:bg-alcon-blue/15 border-l-2 border-alcon-blue' 
-                : 'hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary hover:scale-[1.02] hover:shadow-sm'}
-            `}
-          >
+    <div
+      key={conv.id}
+      className={`
+        group relative px-3 py-2 mx-2 rounded-lg cursor-pointer transition-all duration-200
+        ${conv.id === currentConversationId 
+          ? 'bg-gradient-to-r from-[#003595]/10 to-transparent border-l-2 border-[#003595]' 
+          : 'hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover'}
+      `}
+    >
       <div
         className="flex items-center justify-between"
         onClick={() => {
           if (editingId !== conv.id) {
             switchConversation(conv.id);
+            setActiveNav('chat');
             if (window.innerWidth <= 768 && onClose) onClose();
           }
         }}
@@ -138,14 +161,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className="flex-1 text-sm text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary truncate pr-2">
+          <span className="flex-1 text-sm text-sidebar-text-primary dark:text-sidebar-text-primary truncate pr-2">
             {conv.title}
           </span>
         )}
         
         <div className="menu-container relative">
           <button
-            className={`p-1.5 rounded-lg hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-opacity ${
+            className={`p-2 rounded-lg hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center ${
               openMenuId === conv.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
             }`}
             onClick={(e) => {
@@ -154,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
             }}
             aria-label="More options"
           >
-            <MoreHorizontal size={16} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
+            <MoreHorizontal size={18} className="text-sidebar-text-secondary dark:text-sidebar-text-secondary" />
           </button>
           {openMenuId === conv.id && (
             <div className="absolute right-0 mt-2 w-48 bg-chatgpt-bg/95 dark:bg-chatgpt-dark-bg/95 backdrop-blur-md rounded-2xl shadow-chatgpt-lg border border-chatgpt-border/50 dark:border-chatgpt-dark-border/50 z-50 py-2 animate-slide-in">
@@ -209,7 +232,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
 
   return (
     <>
-      {/* Mobile overlay - only visible on mobile when sidebar is open */}
+      {/* Mobile overlay */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
@@ -217,137 +240,240 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
         />
       )}
       
-      {/* Modern Sidebar */}
-        <div className={`
-          fixed top-0 left-0 h-screen
-          transition-all duration-300 ease-in-out
-          bg-sidebar-surface/95 dark:bg-sidebar-surface/95 backdrop-blur-md border-r border-sidebar-border/50 dark:border-sidebar-border/50
-          z-50 shadow-chatgpt-lg
-          
-          /* Desktop behavior - always visible, position affects layout */
-          lg:static lg:z-auto
-          
-          /* Width transitions */
-          ${isCollapsed ? 'w-16' : 'w-64'}
-          
-          /* Mobile behavior - slides in from left */
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}>
+      {/* Grok-style Sidebar */}
+      <div className={`
+        fixed top-0 left-0 h-screen
+        transition-all duration-300 ease-in-out
+        bg-sidebar-surface dark:bg-sidebar-surface border-r border-sidebar-border dark:border-sidebar-border
+        z-50
+        
+        lg:static lg:z-auto
+        
+        ${isCollapsed ? 'w-16' : 'w-64'}
+        
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
         <div className="flex flex-col h-full">
-          {/* Sidebar Toggle Button */}
-          <div className="p-4 border-b border-chatgpt-border/50 dark:border-chatgpt-dark-border/50">
+          {/* Logo at top - Grok style */}
+          <div className="p-4 border-b border-sidebar-border dark:border-sidebar-border">
             {isCollapsed ? (
               <button 
-                className="w-full flex items-center justify-center p-2 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-colors"
+                className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover transition-all duration-200 min-w-[44px] min-h-[44px]"
                 onClick={onToggleCollapse}
                 title="Expand sidebar"
                 aria-label="Expand sidebar"
               >
-                <PanelLeftOpen size={32} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#003595] to-[#1a4ba3] flex items-center justify-center">
+                  <span className="text-sm font-semibold text-white">E</span>
+                </div>
               </button>
             ) : (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-alcon-blue/10 dark:bg-alcon-blue/15 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-alcon-blue">E</span>
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#003595] to-[#1a4ba3] flex items-center justify-center">
+                    <span className="text-sm font-semibold text-white">E</span>
                   </div>
-                  <span className="text-sm font-semibold text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary">EyeQ</span>
+                  <span className="text-sm font-semibold text-sidebar-text-primary dark:text-sidebar-text-primary">EyeQ</span>
                 </div>
                 <button 
-                  className="p-2 rounded-lg hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-colors"
+                  className="p-2 rounded-lg hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
                   onClick={onToggleCollapse}
                   title="Collapse sidebar"
                   aria-label="Collapse sidebar"
                 >
-                  <PanelLeftClose size={18} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
+                  <PanelLeftClose size={18} className="text-sidebar-text-secondary dark:text-sidebar-text-secondary" />
                 </button>
               </div>
             )}
           </div>
 
-          {/* Modern Search Section */}
-          <div className="p-4">
-            {isCollapsed ? (
-              // Collapsed: Just the search icon button
-              <button 
-                className="w-full flex items-center justify-center p-2 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-colors"
-                title="Search conversations"
-                aria-label="Search conversations"
-              >
-                <Search size={32} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
-              </button>
-            ) : (
-              <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-chatgpt-text-tertiary dark:text-chatgpt-dark-text-tertiary" />
-                <input
-                  type="text"
-                  placeholder="Search conversations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 text-sm bg-sidebar-surface-hover dark:bg-sidebar-surface-hover border border-sidebar-border dark:border-sidebar-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-alcon-blue/20 focus:border-alcon-blue text-sidebar-text-primary dark:text-sidebar-text-primary placeholder-sidebar-text-secondary dark:placeholder-sidebar-text-secondary shadow-chatgpt transition-all duration-200"
-                />
-                {searchQuery && (
+          {/* Unified Navigation Section */}
+          {!isCollapsed && (
+            <div className="flex-1 overflow-y-auto py-4 px-2">
+              {/* Search Input - shown when Search is active or when typing */}
+              {(isSearchActive || activeNav === 'search' || searchQuery.trim()) && (
+                <div className="mb-4 px-2">
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sidebar-text-secondary dark:text-sidebar-text-secondary" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Search conversations..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setIsSearchActive(true);
+                        setActiveNav('search');
+                      }}
+                      onFocus={() => {
+                        setIsSearchActive(true);
+                        setActiveNav('search');
+                      }}
+                      onBlur={(e) => {
+                        // Only hide if search query is empty and we're not clicking on the Search button
+                        if (!searchQuery.trim() && !e.relatedTarget?.closest('button')) {
+                          setIsSearchActive(false);
+                          if (activeNav === 'search') {
+                            setActiveNav('chat');
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        // Escape key closes search
+                        if (e.key === 'Escape') {
+                          setSearchQuery('');
+                          setIsSearchActive(false);
+                          setActiveNav('chat');
+                          searchInputRef.current?.blur();
+                        }
+                      }}
+                      className="w-full pl-10 pr-3 py-2.5 text-sm bg-sidebar-surface-hover dark:bg-sidebar-surface-hover border border-sidebar-border dark:border-sidebar-border rounded-xl focus:outline-none focus:ring-2 focus:ring-alcon-blue/20 focus:border-alcon-blue text-sidebar-text-primary dark:text-sidebar-text-primary placeholder-sidebar-text-secondary dark:placeholder-sidebar-text-secondary transition-all duration-200"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Items */}
+              <div className="space-y-1 mb-4">
+                {/* Search Button - hidden when search input is active */}
+                {!(isSearchActive || activeNav === 'search' || searchQuery.trim()) && (
                   <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-chatgpt-text-tertiary dark:text-chatgpt-dark-text-tertiary hover:text-chatgpt-text-secondary dark:hover:text-chatgpt-dark-text-secondary transition-colors"
-                    aria-label="Clear search"
+                    className={`
+                      w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                      text-sidebar-text-secondary dark:text-sidebar-text-secondary hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover
+                    `}
+                    onClick={() => {
+                      setActiveNav('search');
+                      setIsSearchActive(true);
+                      setTimeout(() => {
+                        searchInputRef.current?.focus();
+                      }, 100);
+                    }}
                   >
-                    <X size={16} />
+                    <Search size={20} />
+                    <span className="text-sm font-medium">Search</span>
+                    <span className="ml-auto text-xs text-sidebar-text-secondary dark:text-sidebar-text-secondary">
+                      Ctrl+K
+                    </span>
                   </button>
                 )}
+
+                {/* Chat Button */}
+                <button
+                  className={`
+                    w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                    ${activeNav === 'chat' 
+                      ? 'bg-sidebar-surface-hover dark:bg-sidebar-surface-hover text-sidebar-text-primary dark:text-sidebar-text-primary' 
+                      : 'text-sidebar-text-secondary dark:text-sidebar-text-secondary hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover'}
+                  `}
+                  onClick={() => {
+                    setActiveNav('chat');
+                    createNewConversation();
+                    if (window.innerWidth <= 768 && onClose) onClose();
+                  }}
+                >
+                  <MessageSquare size={20} />
+                  <span className="text-sm font-medium">Chat</span>
+                  <span className="ml-auto text-xs text-sidebar-text-secondary dark:text-sidebar-text-secondary">
+                    Ctrl+J
+                  </span>
+                </button>
               </div>
-            )}
-          </div>
 
-          {/* Modern New Chat Section */}
-          <div className="px-4 pb-4">
-            {isCollapsed ? (
-              // Collapsed: Just the plus icon
-              <button 
-                className="w-full flex items-center justify-center p-2 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary"
-                onClick={() => {
-                  createNewConversation();
-                  if (window.innerWidth <= 768 && onClose) onClose();
-                }}
-                title="New Chat"
-                aria-label="New Chat"
-              >
-                <Plus size={32} />
-              </button>
-            ) : (
-              <button 
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-2xl border-2 border-dashed border-chatgpt-border dark:border-chatgpt-dark-border hover:border-alcon-blue dark:hover:border-alcon-blue hover:bg-alcon-blue/5 dark:hover:bg-alcon-blue/5 transition-all text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary font-medium shadow-chatgpt hover:shadow-chatgpt-lg"
-                onClick={() => {
-                  createNewConversation();
-                  if (window.innerWidth <= 768 && onClose) onClose();
-                }}
-              >
-                <Plus size={20} />
-                <span className="text-sm">New Chat</span>
-              </button>
-            )}
-          </div>
-
-
-          {/* Modern Recent Section - HIDDEN WHEN COLLAPSED */}
-          {!isCollapsed && (
-            <div className="flex-1 overflow-y-auto py-2">
-              <div className="mb-2">
-                <div className="w-full flex items-center gap-2 px-6 py-3 text-xs font-semibold text-chatgpt-text-tertiary dark:text-chatgpt-dark-text-tertiary uppercase tracking-wider">
-                  <span>Recent</span>
-                </div>
-                <div className="space-y-1 px-2">
-                  {recentConversations.length > 0 ? (
-                    recentConversations.map(renderConversationItem)
-                  ) : searchQuery.trim() ? (
-                    <div className="px-4 py-6 text-center text-sm text-chatgpt-text-tertiary dark:text-chatgpt-dark-text-tertiary">
-                      No conversations found for "{searchQuery}"
+              {/* Conversations List */}
+              <div className="mt-4">
+                {searchQuery.trim() ? (
+                  <>
+                    <div className="text-xs font-semibold text-sidebar-text-secondary dark:text-sidebar-text-secondary uppercase tracking-wider mb-2 px-4">
+                      Search Results
                     </div>
-                  ) : null}
-                </div>
+                    {filteredConversations.length > 0 ? (
+                      <div className="space-y-0.5">
+                        {filteredConversations.map(renderConversationItem)}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-6 text-center text-sm text-sidebar-text-secondary dark:text-sidebar-text-secondary">
+                        No conversations found for "{searchQuery}"
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="text-xs font-semibold text-sidebar-text-secondary dark:text-sidebar-text-secondary uppercase tracking-wider mb-2 px-4">
+                      Recent
+                    </div>
+                    {filteredConversations.length > 0 ? (
+                      <div className="space-y-0.5">
+                        {filteredConversations.map(renderConversationItem)}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-6 text-center text-sm text-sidebar-text-secondary dark:text-sidebar-text-secondary">
+                        No conversations yet
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           )}
+
+          {/* Collapsed navigation icons */}
+          {isCollapsed && (
+            <div className="flex-1 overflow-y-auto py-4 px-2 space-y-2">
+              <button
+                className={`
+                  w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200
+                  ${activeNav === 'search' 
+                    ? 'bg-sidebar-surface-hover dark:bg-sidebar-surface-hover' 
+                    : 'hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover'}
+                  min-w-[44px] min-h-[44px]
+                `}
+                onClick={() => {
+                  setActiveNav('search');
+                  setIsSearchActive(true);
+                }}
+                title="Search (Ctrl+K)"
+              >
+                <Search size={20} className={activeNav === 'search' ? 'text-sidebar-text-primary dark:text-sidebar-text-primary' : 'text-sidebar-text-secondary dark:text-sidebar-text-secondary'} />
+              </button>
+              <button
+                className={`
+                  w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200
+                  ${activeNav === 'chat' 
+                    ? 'bg-sidebar-surface-hover dark:bg-sidebar-surface-hover' 
+                    : 'hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover'}
+                  min-w-[44px] min-h-[44px]
+                `}
+                onClick={() => {
+                  setActiveNav('chat');
+                  createNewConversation();
+                  if (window.innerWidth <= 768 && onClose) onClose();
+                }}
+                title="Chat (Ctrl+J)"
+              >
+                <MessageSquare size={20} className={activeNav === 'chat' ? 'text-sidebar-text-primary dark:text-sidebar-text-primary' : 'text-sidebar-text-secondary dark:text-sidebar-text-secondary'} />
+              </button>
+            </div>
+          )}
+
+          {/* User profile at bottom - Grok style */}
+          <div className="p-4 border-t border-sidebar-border dark:border-sidebar-border">
+            {isCollapsed ? (
+              <button className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover transition-all duration-200 min-w-[44px] min-h-[44px]">
+                <User size={20} className="text-sidebar-text-secondary dark:text-sidebar-text-secondary" />
+              </button>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-sidebar-surface-hover dark:bg-sidebar-surface-hover flex items-center justify-center">
+                  <User size={18} className="text-sidebar-text-secondary dark:text-sidebar-text-secondary" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-sidebar-text-primary dark:text-sidebar-text-primary">User</div>
+                  <div className="text-xs text-sidebar-text-secondary dark:text-sidebar-text-secondary">user@example.com</div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>
@@ -355,4 +481,3 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
 };
 
 export default Sidebar;
-

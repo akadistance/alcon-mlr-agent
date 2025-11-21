@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, useContext, useMemo } from 'react';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Image, Folder, Mic, ChevronDown } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import InputArea from './InputArea';
 import PromptSuggestions from './PromptSuggestions';
 import { ChatContext } from '../ChatContext';
 import { Message } from '../types';
+
+import { Attachment } from '../types';
 
 interface ChatInterfaceProps {
   onToggleSidebar: () => void;
@@ -124,7 +126,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
     console.log('🔄 Current conversation object:', currentConversation);
   }, [messages, currentConversationId, currentConversation]);
 
-  const handleSendMessage = async (message: string, file: File | null = null) => {
+  const handleSendMessage = async (message: string, file: File | null = null, attachments?: Attachment[]) => {
     console.log('🚀 handleSendMessage called with:', message, file);
     console.log('🔍 Current conversation ID:', currentConversationId);
     console.log('🔍 Current conversation:', currentConversation);
@@ -150,6 +152,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
       type: 'user',
       content: effectiveMessage,
       file: file ? { name: file.name, content: fileContent } : undefined,
+      attachments: attachments,
       timestamp: new Date()
     };
 
@@ -531,25 +534,85 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
     }
   };
 
-  // If no current conversation, show homepage with centered input
+  // If no current conversation, show homepage with centered input - Grok style
   if (!currentConversationId) {
     return (
       <div className="flex flex-col h-full bg-chatgpt-bg dark:bg-chatgpt-dark-bg relative overflow-hidden">
-        {/* Clean background - no gradients */}
-        
         <div className="flex-1 flex flex-col items-center justify-center relative z-10">
           <div className="w-full max-w-4xl px-6 flex flex-col items-center">
-            <InputArea
-              onSendMessage={handleSendMessage}
-              isLoading={isLoading}
-              hasMessages={false}
-              sidebarCollapsed={sidebarCollapsed}
-              sidebarOpen={sidebarOpen}
-            />
-            <PromptSuggestions
-              onSelectPrompt={handleSendMessage}
-              isLoading={isLoading}
-            />
+            {/* Clean EyeQ Logo */}
+            <div className="mb-4 flex flex-col items-center">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#003595] to-[#1a4ba3] flex items-center justify-center">
+                  <span className="text-lg font-bold text-white">E</span>
+                </div>
+                <h1 className="text-2xl font-semibold text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary">
+                  EyeQ
+                </h1>
+              </div>
+            </div>
+
+            {/* Input Area - Compact */}
+            <div className="w-full mb-4 flex justify-center">
+              <div className="w-full max-w-2xl">
+                <InputArea
+                  onSendMessage={handleSendMessage}
+                  isLoading={isLoading}
+                  hasMessages={false}
+                  sidebarCollapsed={sidebarCollapsed}
+                  sidebarOpen={sidebarOpen}
+                  isHomepage={true}
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons - Grok style */}
+            <div className="flex flex-wrap gap-3 justify-center items-center w-full max-w-2xl">
+              <button
+                onClick={() => {
+                  // TODO: Implement DeepSearch functionality
+                  console.log('DeepSearch clicked');
+                }}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-chatgpt-bg-secondary dark:bg-chatgpt-dark-bg-secondary hover:bg-chatgpt-bg-tertiary dark:hover:bg-chatgpt-dark-bg-tertiary border border-chatgpt-border dark:border-chatgpt-dark-border text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="text-sm font-medium">DeepSearch</span>
+              </button>
+              <button
+                onClick={() => {
+                  // TODO: Implement Create Image functionality
+                  console.log('Create Image clicked');
+                }}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-chatgpt-bg-secondary dark:bg-chatgpt-dark-bg-secondary hover:bg-chatgpt-bg-tertiary dark:hover:bg-chatgpt-dark-bg-tertiary border border-chatgpt-border dark:border-chatgpt-dark-border text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Image size={18} className="text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary" />
+                <span className="text-sm font-medium">Create Image</span>
+              </button>
+              <button
+                onClick={() => {
+                  // TODO: Implement Pick Personas functionality
+                  console.log('Pick Personas clicked');
+                }}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-chatgpt-bg-secondary dark:bg-chatgpt-dark-bg-secondary hover:bg-chatgpt-bg-tertiary dark:hover:bg-chatgpt-dark-bg-tertiary border border-chatgpt-border dark:border-chatgpt-dark-border text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Folder size={18} className="text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary" />
+                <span className="text-sm font-medium">Pick Personas</span>
+                <ChevronDown size={16} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
+              </button>
+              <button
+                onClick={() => {
+                  // TODO: Implement Voice functionality
+                  console.log('Voice clicked');
+                }}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-chatgpt-bg-secondary dark:bg-chatgpt-dark-bg-secondary hover:bg-chatgpt-bg-tertiary dark:hover:bg-chatgpt-dark-bg-tertiary border border-chatgpt-border dark:border-chatgpt-dark-border text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Mic size={18} className="text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary" />
+                <span className="text-sm font-medium">Voice</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -574,20 +637,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
           
           {/* Clean background - no floating gradients */}
           
-          <div className="w-full max-w-4xl px-6 relative z-10 flex flex-col items-center">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-alcon-blue to-alcon-blue/80 rounded-3xl shadow-chatgpt-lg mb-6 animate-bounce-gentle">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h2 className="text-3xl font-semibold text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary mb-3">
-                Alcon Compliance Assistant
-              </h2>
-              <p className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary max-w-lg mx-auto text-lg">
-                Upload your promotional materials for instant MLR pre-screening analysis
-              </p>
-            </div>
+            <div className="w-full max-w-4xl px-6 relative z-10 flex flex-col items-center">
             <InputArea
               onSendMessage={handleSendMessage}
               isLoading={isLoading}
@@ -596,7 +646,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
               sidebarOpen={sidebarOpen}
             />
             <PromptSuggestions
-              onSelectPrompt={handleSendMessage}
+              onSelectPrompt={(prompt) => handleSendMessage(prompt, null)}
               isLoading={isLoading}
             />
           </div>
@@ -608,8 +658,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
             ref={messagesContainerRef}
             onScroll={handleScroll}
           >
-            <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 px-6 py-6">
+            <div className="max-w-3xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-6 py-6">
               {messages.map((message, index) => {
+                // Find the last user message index
+                let lastUserMessageIndex = -1;
+                for (let i = messages.length - 1; i >= 0; i--) {
+                  if (messages[i].type === 'user') {
+                    lastUserMessageIndex = i;
+                    break;
+                  }
+                }
+                
                 return (
                   <div key={message.id} className="animate-message-in">
                     <MessageBubble
@@ -619,6 +678,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
                       onShare={handleShareConversation}
                       onExport={handleExportConversation}
                       onEdit={handleEditLastUserMessage}
+                      isLastUserMessage={message.type === 'user' && index === lastUserMessageIndex}
                     />
                   </div>
                 );
@@ -641,15 +701,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
             </div>
           </div>
           
-          {/* Modern scroll to bottom button */}
+          {/* Modern scroll to bottom button - centered and aligned with input */}
           {showScrollButton && (
-            <button 
-              className="fixed bottom-28 right-8 p-4 rounded-2xl bg-chatgpt-bg/90 dark:bg-chatgpt-dark-bg/90 backdrop-blur-md shadow-chatgpt-lg hover:shadow-chatgpt-xl transition-all duration-300 border border-chatgpt-border/50 dark:border-chatgpt-dark-border/50 z-10 hover:scale-105 group"
-              onClick={scrollToBottomManually}
-              aria-label="Scroll to bottom"
-            >
-              <ArrowDown size={20} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary group-hover:text-alcon-blue transition-colors duration-200" />
-            </button>
+            <div className="fixed bottom-28 left-0 right-0 flex justify-center z-10 pointer-events-none">
+              <div className="max-w-4xl w-full px-6 flex justify-center pointer-events-none">
+                <button 
+                  className="p-4 rounded-2xl bg-chatgpt-bg/90 dark:bg-chatgpt-dark-bg/90 backdrop-blur-md shadow-chatgpt-lg hover:shadow-chatgpt-xl transition-all duration-300 border border-chatgpt-border/50 dark:border-chatgpt-dark-border/50 hover:scale-105 group pointer-events-auto"
+                  onClick={scrollToBottomManually}
+                  aria-label="Scroll to bottom"
+                >
+                  <ArrowDown size={20} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary group-hover:text-alcon-blue transition-colors duration-200" />
+                </button>
+              </div>
+            </div>
           )}
           
           <InputArea

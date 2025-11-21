@@ -8,11 +8,20 @@ export interface Message {
     name: string;
     content?: string;
   };
+  attachments?: Attachment[];
   analysis?: Analysis | null;
   isLoading?: boolean;
   isError?: boolean;
   isStreaming?: boolean;
   timestamp: Date;
+}
+
+export interface Attachment {
+  id: string;
+  type: 'text' | 'file' | 'image';
+  title: string;
+  content?: string;
+  sourceMessageId?: number | string;
 }
 
 export interface Analysis {

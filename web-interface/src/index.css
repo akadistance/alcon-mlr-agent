@@ -54,13 +54,13 @@
   --text-quaternary: #94a3b8;
   --text-inverse: #ffffff;
   
-  /* Claude-style Surface Colors */
-  --background: #ffffff;
-  --background-alt: #f9f9f9;
+  /* Claude-style Surface Colors - Warmer backgrounds */
+  --background: #fafbfc;
+  --background-alt: #f5f7fa;
   --surface: #ffffff;
   --surface-elevated: #ffffff;
-  --surface-hover: #f5f5f5;
-  --surface-pressed: #eeeeee;
+  --surface-hover: #f5f7fa;
+  --surface-pressed: #f0f2f5;
   --surface-primary: #ffffff;
   
   /* Claude-style Border Colors */
@@ -162,7 +162,7 @@
 }
 
 .dark {
-  /* Claude-style Dark Theme Colors */
+  /* Grok-style Dark Theme Colors - Dark Gray Theme */
   --alcon-primary: #4a90e2;
   --alcon-primary-hover: #357abd;
   --alcon-primary-light: #6ba3ea;
@@ -170,26 +170,26 @@
   --alcon-accent: #00c4d4;
   --alcon-success: #5cb85c;
   
-  /* Claude-style Dark Surfaces */
-  --background: #212121;
-  --background-alt: #2a2a2a;
+  /* Grok-style Dark Surfaces - Dark Gray Background */
+  --background: #1a1a1a;
+  --background-alt: #252525;
   --surface: #2a2a2a;
-  --surface-elevated: #2a2a2a;
-  --surface-hover: #333333;
-  --surface-pressed: #3a3a3a;
+  --surface-elevated: #333333;
+  --surface-hover: #2f2f2f;
+  --surface-pressed: #353535;
   --surface-primary: #2a2a2a;
   
-  /* Claude-style Dark Borders */
-  --border: #404040;
-  --border-light: #3a3a3a;
-  --border-medium: #505050;
+  /* Grok-style Dark Borders */
+  --border: #3a3a3a;
+  --border-light: #333333;
+  --border-medium: #404040;
   
-  /* Claude-style Dark Text Colors */
-  --text-primary: #ececec;
-  --text-secondary: #b4b4b4;
-  --text-tertiary: #8e8e8e;
-  --text-quaternary: #707070;
-  --text-inverse: #212121;
+  /* Grok-style Dark Text Colors - White/Light Gray */
+  --text-primary: #ffffff;
+  --text-secondary: #d0d0d0;
+  --text-tertiary: #a0a0a0;
+  --text-quaternary: #808080;
+  --text-inverse: #1a1a1a;
   
   /* Dark Premium Shadows */
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
@@ -205,23 +205,23 @@
   --gradient-surface: linear-gradient(145deg, var(--pearl-white) 0%, var(--cloud-white) 100%);
   --gradient-glass: linear-gradient(145deg, rgba(15, 17, 19, 0.9) 0%, rgba(15, 17, 19, 0.7) 100%);
   
-  /* Additional CSS variables for dark mode */
-  --composer-surface: #212121;
-  --composer-surface-secondary: #2f2f2f;
-  --composer-surface-tertiary: #40414f;
-  --composer-border: #4d4d4f;
-  --composer-border-hover: #565869;
-  --composer-text-primary: #ececf1;
-  --composer-text-secondary: #c5c5d2;
-  --composer-text-tertiary: #8e8ea0;
+  /* Additional CSS variables for dark mode - Grok style */
+  --composer-surface: #2a2a2a;
+  --composer-surface-secondary: #333333;
+  --composer-surface-tertiary: #3a3a3a;
+  --composer-border: #404040;
+  --composer-border-hover: #4a4a4a;
+  --composer-text-primary: #ffffff;
+  --composer-text-secondary: #d0d0d0;
+  --composer-text-tertiary: #a0a0a0;
   --composer-accent: var(--alcon-primary);
   --composer-accent-hover: var(--alcon-primary-hover);
 
-  /* Main surface variables for dark mode */
-  --main-surface-primary: #212121;
-  --main-surface-secondary: #2f2f2f;
-  --main-surface-tertiary: #40414f;
-  --main-surface-quaternary: #565869;
+  /* Main surface variables for dark mode - Grok style */
+  --main-surface-primary: #2a2a2a;
+  --main-surface-secondary: #333333;
+  --main-surface-tertiary: #3a3a3a;
+  --main-surface-quaternary: #404040;
 
   /* Interactive state variables for dark mode */
   --interactive-primary: var(--alcon-primary);
@@ -231,12 +231,12 @@
   --interactive-tertiary: #8e8ea0;
   --interactive-tertiary-hover: #c5c5d2;
 
-  /* Sidebar variables for dark mode */
-  --sidebar-surface: #2f2f2f;
-  --sidebar-surface-hover: #40414f;
-  --sidebar-border: #4d4d4f;
-  --sidebar-text-primary: #ececf1;
-  --sidebar-text-secondary: #c5c5d2;
+  /* Sidebar variables for dark mode - Grok style */
+  --sidebar-surface: #252525;
+  --sidebar-surface-hover: #2f2f2f;
+  --sidebar-border: #3a3a3a;
+  --sidebar-text-primary: #ffffff;
+  --sidebar-text-secondary: #d0d0d0;
   
   /* Legacy support */
   --primary: var(--alcon-primary);
@@ -257,7 +257,7 @@ body {
     'Ubuntu', 'Cantarell', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
+  line-height: 1.6; /* Improved readability */
   font-weight: 400;
   overflow-x: hidden;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -272,7 +272,7 @@ body {
 
 /* Consistent scaling at all zoom levels */
 html {
-  font-size: 15px; /* Smaller base for better density */
+  font-size: 16px; /* Industry standard for better readability */
 }
 
 /* High DPI support only */
@@ -371,9 +371,15 @@ input::placeholder, textarea::placeholder {
   color: white;
 }
 
-/* Remove default focus rings; we use subtle shadows instead */
+/* Enhanced focus states for accessibility */
 textarea:focus, button:focus, input:focus {
   outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--alcon-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Ensure no default focus ring on the input container */
@@ -492,6 +498,28 @@ textarea:focus, button:focus, input:focus {
   }
 }
 
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
 @keyframes diagonalSweep {
   0% {
     transform: translateX(-100%) translateY(-100%) rotate(45deg);
@@ -542,6 +570,18 @@ textarea:focus, button:focus, input:focus {
   animation: diagonalSweep 0.6s ease-out;
 }
 
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+.animate-message-in {
+  animation: messageSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-typing-dot {
+  animation: typingDot 1.4s ease-in-out infinite;
+}
+
 /* ============================================================================
    ADDITIONAL UTILITY CLASSES FROM PROVIDED CSS
    ============================================================================ */
@@ -589,7 +629,7 @@ textarea:focus, button:focus, input:focus {
 
 /* Interactive state utilities */
 .interactive-hover {
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .interactive-hover:hover {
@@ -598,12 +638,27 @@ textarea:focus, button:focus, input:focus {
 }
 
 .interactive-active {
-  transition: all 0.1s ease;
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .interactive-active:active {
   transform: translateY(0);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced button styles for better touch targets */
+button, .button {
+  min-height: 44px; /* iOS/Android touch target */
+  min-width: 44px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:hover, .button:hover {
+  transform: translateY(-1px);
+}
+
+button:active, .button:active {
+  transform: translateY(0);
 }
 
 /* Glass morphism utilities */
@@ -751,36 +806,118 @@ textarea:focus, button:focus, input:focus {
   outline: none;
   border: none;
   background: transparent;
-  color: var(--token-text-primary);
-  font-size: 1rem;
-  line-height: 1.6;
-  min-height: 1.5rem;
+  color: #1a1a1a; /* Dark text for light background */
+  font-size: 1rem; /* 16px */
+  line-height: 1.5; /* Better vertical alignment */
+  min-height: 20px;
   max-height: 12rem;
   overflow-y: auto;
   resize: none;
+  letter-spacing: 0.01em;
+  display: inline-block;
+  width: 100%;
+  vertical-align: middle;
+  padding: 0;
+  margin: 0;
+  height: auto;
+}
+
+.dark .ProseMirror {
+  color: #ececf1; /* Light text for dark background */
+}
+
+/* Thin cursor */
+.ProseMirror:focus {
+  caret-color: #1a1a1a;
+  caret-width: 1px;
+}
+
+.dark .ProseMirror:focus {
+  caret-color: #ececf1;
+}
+
+.ProseMirror:empty::before {
+  line-height: 1.5;
+  vertical-align: middle;
+  display: inline-block;
 }
 
 .ProseMirror p {
   margin: 0;
   padding: 0;
+  line-height: 1.5;
+  display: inline;
+  vertical-align: baseline;
+}
+
+.ProseMirror p[data-placeholder]:empty::before {
+  line-height: 1.5;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+/* Ensure cursor is vertically centered */
+.ProseMirror:focus {
+  caret-color: #ececf1;
+}
+
+/* Fix cursor alignment by ensuring proper line-height */
+._prosemirror-parent_1dsxi_2 {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0;
+  height: auto;
+  line-height: 1.5;
+}
+
+/* Ensure empty ProseMirror aligns cursor correctly */
+.ProseMirror:empty {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1.5;
+}
+
+.ProseMirror:empty:focus {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.ProseMirror p {
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+  display: inline;
 }
 
 .ProseMirror .placeholder {
-  color: var(--token-text-tertiary);
+  color: #9ca3af; /* Gray for placeholder on light background */
   pointer-events: none;
   user-select: none;
 }
 
+.dark .ProseMirror .placeholder {
+  color: #8e8ea0; /* Light gray for placeholder on dark background */
+}
+
 .ProseMirror p[data-placeholder]:empty::before {
   content: attr(data-placeholder);
-  color: var(--token-text-tertiary);
+  color: #9ca3af; /* Gray for placeholder on light background */
   pointer-events: none;
   user-select: none;
   position: absolute;
 }
 
+.dark .ProseMirror p[data-placeholder]:empty::before {
+  color: #8e8ea0; /* Light gray for placeholder on dark background */
+}
+
 .ProseMirror:focus p[data-placeholder]:empty::before {
-  color: var(--token-text-tertiary);
+  display: none; /* Hide placeholder when focused so cursor is visible */
+}
+
+.ProseMirror:focus:empty::before {
+  display: none; /* Hide placeholder when focused and empty */
 }
 
 .ProseMirror .ProseMirror-trailingBreak {
@@ -876,5 +1013,25 @@ textarea:focus, button:focus, input:focus {
   .md\:px-\[60px\] {
     padding-left: 3.75rem;
     padding-right: 3.75rem;
+  }
+}
+
+/* Mobile optimizations for better touch targets */
+@media (max-width: 768px) {
+  button, .button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem;
+  }
+  
+  .input-area {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .message-container {
+    max-width: 42rem; /* 672px */
   }
 }
