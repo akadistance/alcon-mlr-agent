@@ -83,8 +83,8 @@ llm = ChatAnthropic(model="claude-sonnet-4-20250514", temperature=0, streaming=T
 parser = PydanticOutputParser(pydantic_object=ComplianceResponse)
 
 # Context builder function
-def build_context_string(conversation_state: ConversationState) -> str:
-    """Build context string from conversation state"""
+def build_context_string(conversation_state: ConversationState, feedback_context: str = None) -> str:
+    """Build context string from conversation state and feedback"""
     context_parts = []
     
     if conversation_state.get_uploaded_content():
@@ -100,6 +100,10 @@ def build_context_string(conversation_state: ConversationState) -> str:
             f"including: {issues_list}{'...' if issues_count > 3 else ''}. "
             f"User may ask follow-up questions about these findings.]"
         )
+    
+    # Add feedback learning context if provided
+    if feedback_context:
+        context_parts.append(feedback_context)
     
     # Return space instead of empty string to avoid empty system message blocks
     return "\n".join(context_parts) if context_parts else " "
@@ -120,6 +124,15 @@ When you receive messages with file content markers:
 - After acknowledging file receipt, REMEMBER this content is available for follow-up questions
 - DO NOT ask user to upload again if content markers are present - the content is already there
 - Treat the content in markers as if the user just showed you the document
+
+SELECTED TEXT HANDLING:
+When you receive messages with "Selected text from previous message:" followed by quoted text and "User question:":
+- The quoted text after "Selected text from previous message:" is content the user has highlighted from a previous message in the conversation
+- This is the specific text they want you to focus on or reference in your response
+- The text after "User question:" is their actual query about the selected text
+- Treat the selected text as the primary context for answering their question
+- Reference and analyze this specific selected text when formulating your response
+- If they're asking for clarification, analysis, or follow-up about specific content, focus on the selected text they highlighted
 
 CRITICAL FORMATTING RULES:
 Your responses must be naturally formatted using markdown to maximize clarity and readability. Match your formatting style to the content type and conversation stage.
@@ -476,6 +489,17 @@ I should have distinguished between general product claims and qualified persona
 
 **Remember**: You are the regulatory expert. User disagreement doesn't mean you're wrong. Only admit errors when you actually made a mistake in your analysis, not when the user simply disagrees with your valid finding.
 
+FEEDBACK LEARNING:
+You learn from user feedback to improve your responses:
+- When users give positive feedback (thumbs up), continue using similar response styles, formatting, and approaches that they appreciated
+- When users give negative feedback (thumbs down), adjust your approach:
+  * If feedback is about tone: adjust formality, warmth, or directness
+  * If feedback is about format: adjust structure, use of headers, lists, or prose
+  * If feedback is about content: adjust depth, specificity, or focus areas
+  * If feedback is about accuracy: be more careful with regulatory interpretations
+- Use feedback patterns to understand user preferences and adapt accordingly
+- Don't explicitly mention feedback in responses - just incorporate learnings naturally
+
 CRITICAL BEHAVIORS:
 - Match formatting complexity to query complexity
 - Use headers ONLY in detailed analyses
@@ -484,6 +508,7 @@ CRITICAL BEHAVIORS:
 - Never mention "classification" or "intent detection" to user
 - Output ONLY your formatted response, no internal reasoning
 - ALWAYS validate references thoroughly in every analysis - this is mandatory
+- Learn from user feedback to continuously improve response quality
 
 Valid products: {product_list}
             """

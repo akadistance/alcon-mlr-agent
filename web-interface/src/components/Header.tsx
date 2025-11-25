@@ -14,7 +14,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
   return (
     <>
-      <header className="h-14 border-b border-chatgpt-border dark:border-chatgpt-dark-border bg-chatgpt-bg dark:bg-chatgpt-dark-bg sticky top-0 z-50 transition-colors duration-200">
+      <header className="h-14 bg-chatgpt-bg dark:bg-chatgpt-dark-bg sticky top-0 z-50 transition-colors duration-200">
         <div className="h-full max-w-full mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
@@ -23,13 +23,8 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               title="Toggle sidebar"
               aria-label="Toggle sidebar"
             >
-              <Menu size={20} className="text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary" />
+              <Menu size={20} className="text-gray-700 dark:text-chatgpt-dark-text-primary" />
             </button>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-[color:var(--alcon-primary)]">
-                EyeQ
-              </h1>
-            </div>
           </div>
           <div className="flex items-center gap-1">
             <button 
@@ -37,7 +32,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               title="Help"
               aria-label="Help"
             >
-              <HelpCircle size={18} className="text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary" />
+              <HelpCircle size={18} className="text-gray-700 dark:text-chatgpt-dark-text-primary" />
             </button>
             <button 
               ref={settingsRef}
@@ -46,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               onClick={() => setIsSettingsOpen(true)}
               aria-label="Settings"
             >
-              <Settings size={18} className="text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary" />
+              <Settings size={18} className="text-gray-700 dark:text-chatgpt-dark-text-primary" />
             </button>
           </div>
         </div>

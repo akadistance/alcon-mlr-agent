@@ -13,12 +13,8 @@
   color-scheme: light dark;
   
   /* Enterprise Color System - Light Mode */
-  --surface-primary: #FFFFFF;
   --surface-secondary: #F8F7F5;
   --surface-tertiary: #F0EDE8;
-  --text-primary: #1A1A1A;
-  --text-secondary: #6B6B6B;
-  --text-tertiary: #999999;
   --border-subtle: #E8E5E0;
   --accent-primary: #0066CC;
   --accent-success: #0A8754;
@@ -162,34 +158,34 @@
 }
 
 .dark {
-  /* Grok-style Dark Theme Colors - Dark Gray Theme */
-  --alcon-primary: #4a90e2;
-  --alcon-primary-hover: #357abd;
-  --alcon-primary-light: #6ba3ea;
-  --alcon-secondary: #00a0df;
-  --alcon-accent: #00c4d4;
+  /* Grok-style Dark Theme Colors - Cosmic Blue Accents */
+  --alcon-primary: #00d4ff;
+  --alcon-primary-hover: #1da1f2;
+  --alcon-primary-light: #4dd0ff;
+  --alcon-secondary: #00d4ff;
+  --alcon-accent: #00d4ff;
   --alcon-success: #5cb85c;
   
-  /* Grok-style Dark Surfaces - Dark Gray Background */
-  --background: #1a1a1a;
-  --background-alt: #252525;
-  --surface: #2a2a2a;
-  --surface-elevated: #333333;
-  --surface-hover: #2f2f2f;
-  --surface-pressed: #353535;
-  --surface-primary: #2a2a2a;
+  /* Grok-style Dark Surfaces - Deep Space Black */
+  --background: #141414;
+  --background-alt: #141414;
+  --surface: #141414;
+  --surface-elevated: #141414;
+  --surface-hover: #181818;
+  --surface-pressed: #1a1a1a;
+  --surface-primary: #141414;
   
-  /* Grok-style Dark Borders */
-  --border: #3a3a3a;
-  --border-light: #333333;
-  --border-medium: #404040;
+  /* Grok-style Dark Borders - Subtle Accents */
+  --border: #1a1a1a;
+  --border-light: #222222;
+  --border-medium: #1a1a1a;
   
-  /* Grok-style Dark Text Colors - White/Light Gray */
+  /* Grok-style Dark Text Colors - Bright White */
   --text-primary: #ffffff;
-  --text-secondary: #d0d0d0;
-  --text-tertiary: #a0a0a0;
-  --text-quaternary: #808080;
-  --text-inverse: #1a1a1a;
+  --text-secondary: #aaaaaa;
+  --text-tertiary: #b3b3b3;
+  --text-quaternary: #888888;
+  --text-inverse: #000000;
   
   /* Dark Premium Shadows */
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
@@ -206,37 +202,37 @@
   --gradient-glass: linear-gradient(145deg, rgba(15, 17, 19, 0.9) 0%, rgba(15, 17, 19, 0.7) 100%);
   
   /* Additional CSS variables for dark mode - Grok style */
-  --composer-surface: #2a2a2a;
-  --composer-surface-secondary: #333333;
-  --composer-surface-tertiary: #3a3a3a;
-  --composer-border: #404040;
-  --composer-border-hover: #4a4a4a;
+  --composer-surface: #141414;
+  --composer-surface-secondary: #141414;
+  --composer-surface-tertiary: #181818;
+  --composer-border: #1a1a1a;
+  --composer-border-hover: #222222;
   --composer-text-primary: #ffffff;
-  --composer-text-secondary: #d0d0d0;
-  --composer-text-tertiary: #a0a0a0;
+  --composer-text-secondary: #aaaaaa;
+  --composer-text-tertiary: #b3b3b3;
   --composer-accent: var(--alcon-primary);
   --composer-accent-hover: var(--alcon-primary-hover);
 
   /* Main surface variables for dark mode - Grok style */
-  --main-surface-primary: #2a2a2a;
-  --main-surface-secondary: #333333;
-  --main-surface-tertiary: #3a3a3a;
-  --main-surface-quaternary: #404040;
+  --main-surface-primary: #141414;
+  --main-surface-secondary: #141414;
+  --main-surface-tertiary: #181818;
+  --main-surface-quaternary: #1a1a1a;
 
   /* Interactive state variables for dark mode */
   --interactive-primary: var(--alcon-primary);
   --interactive-primary-hover: var(--alcon-primary-hover);
-  --interactive-secondary: #c5c5d2;
-  --interactive-secondary-hover: #ececf1;
-  --interactive-tertiary: #8e8ea0;
-  --interactive-tertiary-hover: #c5c5d2;
+  --interactive-secondary: #aaaaaa;
+  --interactive-secondary-hover: #ffffff;
+  --interactive-tertiary: #b3b3b3;
+  --interactive-tertiary-hover: #aaaaaa;
 
   /* Sidebar variables for dark mode - Grok style */
-  --sidebar-surface: #252525;
-  --sidebar-surface-hover: #2f2f2f;
-  --sidebar-border: #3a3a3a;
+  --sidebar-surface: #141414;
+  --sidebar-surface-hover: #181818;
+  --sidebar-border: #1a1a1a;
   --sidebar-text-primary: #ffffff;
-  --sidebar-text-secondary: #d0d0d0;
+  --sidebar-text-secondary: #aaaaaa;
   
   /* Legacy support */
   --primary: var(--alcon-primary);
@@ -262,6 +258,86 @@ body {
   overflow-x: hidden;
   transition: background-color 0.3s ease, color 0.3s ease;
   min-height: 100vh;
+}
+
+/* Text visibility over blurred background - dark black text in light mode, white in dark mode */
+.text-chatgpt-text-primary,
+.text-chatgpt-text-secondary,
+.text-chatgpt-text-tertiary {
+  color: #000000 !important;
+}
+
+.dark .text-chatgpt-text-primary,
+.dark .text-chatgpt-text-secondary,
+.dark .text-chatgpt-text-tertiary {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color: #ffffff !important;
+}
+
+/* Header icons should use proper colors for light/dark mode */
+header button svg.text-gray-700 {
+  color: #374151 !important;
+}
+
+.dark header button svg.text-gray-700 {
+  color: #ffffff !important;
+}
+
+.dark .text-chatgpt-dark-text-primary,
+.dark .text-chatgpt-dark-text-secondary,
+.dark .text-chatgpt-dark-text-tertiary {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  color: #ffffff !important;
+}
+
+/* Ensure markdown/prose content is readable - dark black text in light mode, white in dark mode */
+.prose,
+.prose p,
+.prose li,
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose strong,
+.prose code {
+  color: #000000 !important;
+}
+
+.dark .prose,
+.dark .prose p,
+.dark .prose li,
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4,
+.dark .prose strong,
+.dark .prose code {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  color: #ffffff !important;
+}
+
+.dark .prose,
+.dark .prose p,
+.dark .prose li,
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4,
+.dark .prose strong,
+.dark .prose code {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  color: #ffffff !important;
+}
+
+/* Ensure message bubbles have good contrast */
+.bg-chatgpt-bg-secondary,
+.dark .bg-chatgpt-dark-bg-secondary {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(8px);
+}
+
+.dark .bg-chatgpt-dark-bg-secondary {
+  background-color: rgba(0, 0, 0, 0.5) !important;
 }
 
 * {
@@ -829,7 +905,6 @@ button:active, .button:active {
 /* Thin cursor */
 .ProseMirror:focus {
   caret-color: #1a1a1a;
-  caret-width: 1px;
 }
 
 .dark .ProseMirror:focus {
@@ -854,11 +929,6 @@ button:active, .button:active {
   line-height: 1.5;
   vertical-align: middle;
   display: inline-block;
-}
-
-/* Ensure cursor is vertically centered */
-.ProseMirror:focus {
-  caret-color: #ececf1;
 }
 
 /* Fix cursor alignment by ensuring proper line-height */

@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CheckCircle, FileText, Copy, Check, RefreshCw, Share2, Download, Pencil } from 'lucide-react';
+import { CheckCircle, FileText, Copy, Check, RefreshCw, Share2, Download, Pencil, ThumbsUp, ThumbsDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Message, Analysis } from '../types';
-import FloatingAddToChatButton from './FloatingAddToChatButton';
-import { ChatContext } from '../ChatContext';
+import { TextShimmer } from './TextShimmer';
 
 interface MessageBubbleProps {
   message: Message;
@@ -15,6 +14,7 @@ interface MessageBubbleProps {
   editable?: boolean;
   onEdit?: (newText: string) => void;
   isLastUserMessage?: boolean;
+  conversationId?: string | null;
 }
 
 interface ParsedContent {
@@ -29,23 +29,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onShare,
   onExport,
   onEdit,
-  isLastUserMessage = false
+  isLastUserMessage = false,
+  conversationId = null
 }) => {
   const { type, content, analysis, file, isLoading, isError, isStreaming } = message;
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(content || '');
+  const [feedback, setFeedback] = useState<'liked' | 'disliked' | null>(null);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const editRef = useRef<HTMLTextAreaElement>(null);
-  const [selectedText, setSelectedText] = useState<string>('');
-  const [selectionPosition, setSelectionPosition] = useState<{ x: number; y: number } | null>(null);
   const messageRef = useRef<HTMLDivElement>(null);
-  const selectedTextRef = useRef<string>('');
-  const { setSelectedTextContext } = React.useContext(ChatContext);
-  
-  // Keep ref in sync with state
-  useEffect(() => {
-    selectedTextRef.current = selectedText;
-  }, [selectedText]);
   
   // Parse content to separate main text from references section
   const parseContentAndReferences = (text: string): ParsedContent => {
@@ -71,6 +65,37 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleFeedback = async (feedbackType: 'liked' | 'disliked') => {
+    if (type !== 'assistant' || isSubmittingFeedback) return;
+    
+    setIsSubmittingFeedback(true);
+    setFeedback(feedbackType);
+    
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message_id: message.id,
+          message_content: content,
+          feedback_type: feedbackType,
+          conversation_id: conversationId
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to submit feedback');
+      }
+      
+      console.log(`Feedback submitted: ${feedbackType} for conversation ${conversationId}`);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      setFeedback(null); // Reset on error
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
   };
 
   const renderAnalysis = (analysis: Analysis) => {
@@ -129,221 +154,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   }, [isEditing]);
 
-  // Handle text selection for "Add to Chat" feature
-  useEffect(() => {
-    if (type !== 'assistant' || isLoading || isError) return;
-
-    let savedRange: Range | null = null;
-    let restoreInterval: NodeJS.Timeout | null = null;
-    let selectionStartContainer: Node | null = null;
-    let selectionStartOffset: number = 0;
-    let selectionEndContainer: Node | null = null;
-    let selectionEndOffset: number = 0;
-
-    const handleMouseUp = (e: MouseEvent) => {
-      // Check if this is within our message bubble
-      const target = e.target as HTMLElement;
-      if (!messageRef.current || !messageRef.current.contains(target)) {
-        return;
-      }
-
-      // Capture selection IMMEDIATELY and synchronously before anything else can clear it
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) {
-        return;
-      }
-
-      const range = selection.getRangeAt(0);
-      const selectedTextValue = selection.toString().trim();
-      
-      // Only show button if selection is meaningful (more than 10 chars)
-      if (selectedTextValue.length < 10) {
-        return;
-      }
-
-      // Check if selection is within this message bubble
-      if (!messageRef.current.contains(range.commonAncestorContainer)) {
-        return;
-      }
-
-      // Save range details for restoration
-      try {
-        savedRange = range.cloneRange();
-        selectionStartContainer = range.startContainer;
-        selectionStartOffset = range.startOffset;
-        selectionEndContainer = range.endContainer;
-        selectionEndOffset = range.endOffset;
-      } catch (err) {
-        console.warn('Failed to save range:', err);
-        return;
-      }
-
-      // Store the selected text and position IMMEDIATELY
-      setSelectedText(selectedTextValue);
-
-      // Get selection position
-      const rect = range.getBoundingClientRect();
-      setSelectionPosition({
-        x: rect.left + rect.width / 2,
-        y: rect.top
-      });
-
-      // Clear any existing interval
-      if (restoreInterval) {
-        clearInterval(restoreInterval);
-        restoreInterval = null;
-      }
-
-      // Function to restore selection
-      const preserveSelection = () => {
-        if (!selectedTextRef.current) return;
-        
-        try {
-          const currentSelection = window.getSelection();
-          if (!currentSelection) return;
-          
-          // Check if selection is already there
-          if (currentSelection.rangeCount > 0) {
-            const currentRange = currentSelection.getRangeAt(0);
-            const currentText = currentRange.toString().trim();
-            // If selection matches, keep it
-            if (currentText === selectedTextRef.current) {
-              return;
-            }
-          }
-          
-          // Try to restore using saved range first
-          if (savedRange) {
-            try {
-              currentSelection.removeAllRanges();
-              currentSelection.addRange(savedRange.cloneRange());
-              return;
-            } catch (err) {
-              // Range might be invalid, try recreating from offsets
-            }
-          }
-          
-          // Fallback: try to recreate from saved offsets
-          if (selectionStartContainer && selectionEndContainer) {
-            try {
-              const newRange = document.createRange();
-              newRange.setStart(selectionStartContainer, selectionStartOffset);
-              newRange.setEnd(selectionEndContainer, selectionEndOffset);
-              currentSelection.removeAllRanges();
-              currentSelection.addRange(newRange);
-            } catch (err) {
-              // Containers might be invalid, ignore
-            }
-          }
-        } catch (err) {
-          // Ignore errors
-        }
-      };
-
-      // Try to preserve immediately multiple times
-      setTimeout(preserveSelection, 0);
-      setTimeout(preserveSelection, 10);
-      setTimeout(preserveSelection, 50);
-      setTimeout(preserveSelection, 100);
-
-      // Keep restoring selection periodically until button is clicked
-      restoreInterval = setInterval(() => {
-        // Check if we still have selectedText state using ref (more reliable)
-        if (!selectedTextRef.current) {
-          if (restoreInterval) {
-            clearInterval(restoreInterval);
-            restoreInterval = null;
-          }
-          savedRange = null;
-          return;
-        }
-        
-        preserveSelection();
-      }, 100); // Check frequently to maintain highlight
-    };
-
-    // Listen for clicks outside to clear selection (with delay to avoid immediate clearing)
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      
-      // Don't clear if clicking on the button itself
-      if (target.closest('.floating-add-to-chat-button')) {
-        return;
-      }
-      
-      // Don't clear if clicking within the message bubble
-      if (messageRef.current && messageRef.current.contains(target)) {
-        return;
-      }
-
-      // Don't clear if clicking on the input area (contentEditable or its container)
-      if (target.closest('#prompt-textarea') || 
-          target.closest('.ProseMirror') || 
-          target.closest('[data-type="text"]') ||
-          target.closest('form[data-type="text"]')) {
-        return;
-      }
-
-      // Delay clearing to avoid interfering with selection
-      setTimeout(() => {
-        const currentSelection = window.getSelection();
-        if (currentSelection) {
-          // Only clear if the selection is not in the input area
-          const activeElement = document.activeElement;
-          const isInputFocused = activeElement?.closest('#prompt-textarea') || 
-                                 activeElement?.closest('.ProseMirror') ||
-                                 activeElement?.closest('[data-type="text"]');
-          
-          if (!isInputFocused) {
-            currentSelection.removeAllRanges();
-          }
-        }
-        setSelectedText('');
-        setSelectionPosition(null);
-      }, 50);
-    };
-
-    // Use capture phase to catch mouseup early
-    document.addEventListener('mouseup', handleMouseUp, true);
-    document.addEventListener('click', handleClickOutside, true);
-
-    return () => {
-      if (restoreInterval) {
-        clearInterval(restoreInterval);
-      }
-      document.removeEventListener('mouseup', handleMouseUp, true);
-      document.removeEventListener('click', handleClickOutside, true);
-    };
-  }, [type, isLoading, isError, selectedText]);
-
-  const handleAddToChat = () => {
-    if (selectedText) {
-      setSelectedTextContext({
-        text: selectedText,
-        sourceMessageId: message.id
-      });
-      // Clear selection and state AFTER adding to chat
-      const selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-      }
-      setSelectedText('');
-      setSelectionPosition(null);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex w-full justify-start animate-message-in">
         <div className="max-w-3xl w-full p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-gradient-to-r from-[#003595] to-[#1a4ba3] rounded-full animate-typing-dot"></div>
-              <div className="w-2 h-2 bg-gradient-to-r from-[#003595] to-[#1a4ba3] rounded-full animate-typing-dot" style={{ animationDelay: '0.2s' }}></div>
-              <div className="w-2 h-2 bg-gradient-to-r from-[#003595] to-[#1a4ba3] rounded-full animate-typing-dot" style={{ animationDelay: '0.4s' }}></div>
-            </div>
-            <span className="text-base text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary font-medium">EyeQ is analyzing...</span>
-          </div>
+          <TextShimmer className="text-base font-medium">
+            EyeQ is thinking
+          </TextShimmer>
         </div>
       </div>
     );
@@ -359,7 +176,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         <div className={`
           transition-all duration-300
           ${type === 'user' 
-            ? 'inline-flex max-w-[85%] rounded-2xl bg-gradient-to-br from-[#003595] to-[#1a4ba3] text-white shadow-lg shadow-[#003595]/20 hover:shadow-xl hover:shadow-[#003595]/30 hover:scale-[1.01] animate-message-in' 
+            ? 'inline-flex max-w-[85%] rounded-2xl bg-gradient-to-br from-[#003595] to-[#1a4ba3] dark:bg-[#141414] text-white shadow-lg shadow-[#003595]/20 dark:shadow-[#1a1a1a]/50 hover:shadow-xl hover:shadow-[#003595]/30 dark:hover:shadow-[#222222]/50 hover:scale-[1.01] animate-message-in' 
             : 'max-w-3xl w-full text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary animate-message-in'}
           ${isError ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : ''}
         `}>
@@ -432,7 +249,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                       className="px-3 py-1.5 rounded-lg bg-white text-[#003595] hover:bg-white/90 transition-colors text-sm font-medium"
                       onClick={saveEdit}
                     >
-                      Save
+                      Send
                     </button>
                   </div>
                 </div>
@@ -463,46 +280,76 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
           {/* Action buttons for assistant messages - under the message */}
           {type === 'assistant' && !isLoading && !isError && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              {/* Feedback buttons */}
+              <div className="flex gap-1 mr-1">
+                <button
+                  className={`p-2 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center ${
+                    feedback === 'liked'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                      : 'hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary'
+                  }`}
+                  onClick={() => handleFeedback('liked')}
+                  disabled={isSubmittingFeedback}
+                  title="Good response"
+                  aria-label="Like this response"
+                >
+                  <ThumbsUp size={14} />
+                </button>
+                <button
+                  className={`p-2 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center ${
+                    feedback === 'disliked'
+                      ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                      : 'hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary'
+                  }`}
+                  onClick={() => handleFeedback('disliked')}
+                  disabled={isSubmittingFeedback}
+                  title="Poor response"
+                  aria-label="Dislike this response"
+                >
+                  <ThumbsDown size={14} />
+                </button>
+              </div>
+              
               <button 
-                className="p-3 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center" 
+                className="p-2 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center" 
                 onClick={handleCopy}
                 title={copied ? 'Copied!' : 'Copy'}
                 aria-label="Copy message"
               >
-                {copied ? <Check size={18} className="text-alcon-blue" /> : <Copy size={18} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />}
+                {copied ? <Check size={14} className="text-alcon-blue" /> : <Copy size={14} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />}
               </button>
               
               {isLast && onRegenerate && (
                 <button 
-                  className="p-3 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center" 
+                  className="p-2 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center" 
                   onClick={onRegenerate}
                   title="Regenerate response"
                   aria-label="Regenerate response"
                 >
-                  <RefreshCw size={18} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
+                  <RefreshCw size={14} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
                 </button>
               )}
 
               {onShare && (
                 <button
-                  className="p-3 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="p-2 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"
                   onClick={() => onShare(message)}
                   title="Share conversation"
                   aria-label="Share conversation"
                 >
-                  <Share2 size={18} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
+                  <Share2 size={14} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
                 </button>
               )}
 
               {onExport && (
                 <button
-                  className="p-3 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="p-2 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"
                   onClick={() => onExport('markdown')}
                   title="Export conversation"
                   aria-label="Export conversation"
                 >
-                  <Download size={18} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
+                  <Download size={14} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
                 </button>
               )}
             </div>
@@ -514,35 +361,27 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {type === 'user' && !isEditing && (
         <div className="basis-full flex justify-end gap-2 mt-2">
           <button
-            className="p-3 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"
             onClick={handleCopy}
             title={copied ? 'Copied!' : 'Copy'}
             aria-label="Copy message"
           >
-            {copied ? <Check size={18} className="text-alcon-blue" /> : <Copy size={18} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />}
+            {copied ? <Check size={14} className="text-alcon-blue" /> : <Copy size={14} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />}
           </button>
           {isLastUserMessage && (
             <button
-              className="p-3 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="p-2 rounded-xl hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"
               onClick={startEdit}
               title="Edit message"
               aria-label="Edit message"
             >
-              <Pencil size={18} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
+              <Pencil size={14} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
             </button>
           )}
         </div>
       )}
       
       </div>
-
-      {/* Floating "Add to Chat" button */}
-      {selectedText && selectionPosition && type === 'assistant' && !isLoading && !isError && (
-        <FloatingAddToChatButton
-          position={selectionPosition}
-          onAddToChat={handleAddToChat}
-        />
-      )}
     </div>
   );
 };

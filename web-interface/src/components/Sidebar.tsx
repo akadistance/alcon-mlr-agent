@@ -254,8 +254,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="flex flex-col h-full">
-          {/* Logo at top - Grok style */}
-          <div className="p-4 border-b border-sidebar-border dark:border-sidebar-border">
+          {/* Collapse button at top */}
+          <div className="h-14 px-4 flex items-center justify-between border-b border-sidebar-border dark:border-sidebar-border">
             {isCollapsed ? (
               <button 
                 className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover transition-all duration-200 min-w-[44px] min-h-[44px]"
@@ -263,18 +263,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
                 title="Expand sidebar"
                 aria-label="Expand sidebar"
               >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#003595] to-[#1a4ba3] flex items-center justify-center">
-                  <span className="text-sm font-semibold text-white">E</span>
-                </div>
+                <PanelLeftClose size={18} className="text-sidebar-text-secondary dark:text-sidebar-text-secondary rotate-180" />
               </button>
             ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#003595] to-[#1a4ba3] flex items-center justify-center">
-                    <span className="text-sm font-semibold text-white">E</span>
-                  </div>
-                  <span className="text-sm font-semibold text-sidebar-text-primary dark:text-sidebar-text-primary">EyeQ</span>
-                </div>
+              <div className="w-full flex items-center justify-end">
                 <button 
                   className="p-2 rounded-lg hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
                   onClick={onToggleCollapse}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useContext, useMemo } from 'react';
-import { ArrowDown, Image, Folder, Mic, ChevronDown } from 'lucide-react';
+import { ArrowDown, FileText, Edit, AlertTriangle, Shield } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import InputArea from './InputArea';
 import PromptSuggestions from './PromptSuggestions';
@@ -15,12 +15,12 @@ interface ChatInterfaceProps {
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggleSidebar, sidebarCollapsed, sidebarOpen }) => {
-  const { 
-    updateCurrentMessages, 
-    addFile, 
-    updateConversationTitle, 
-    conversations, 
-    currentConversationId, 
+  const {
+    updateCurrentMessages,
+    addFile,
+    updateConversationTitle,
+    conversations,
+    currentConversationId,
     createConversationOnFirstMessage
   } = useContext(ChatContext);
   
@@ -163,7 +163,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
     // Update messages immediately and optimistically
     updateCurrentMessages(newMessages, conversationId);
     setIsLoading(true);
-    
+
     // Force re-render
     setForceRender(prev => prev + 1);
     console.log('🔄 Messages updated, forcing re-render');
@@ -435,44 +435,159 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
     console.log('🔄 Regenerating response for message:', assistantMessage.id);
     
     const messageIndex = messages.findIndex(msg => msg.id === assistantMessage.id);
-    if (messageIndex <= 0) return;
+    if (messageIndex <= 0) {
+      console.error('❌ Invalid message index for regeneration');
+      return;
+    }
     
     const userMessage = messages[messageIndex - 1];
-    if (userMessage.type !== 'user') return;
+    if (userMessage.type !== 'user') {
+      console.error('❌ Previous message is not a user message');
+      return;
+    }
     
+    // Remove the assistant message and all messages after it
     const updatedMessages = messages.slice(0, messageIndex);
-    updateCurrentMessages(updatedMessages);
+    updateCurrentMessages(updatedMessages, currentConversationId);
     setIsLoading(true);
+    setForceRender(prev => prev + 1);
     
     try {
       const analyzeBody = userMessage.file ? 
         `${userMessage.content}\n\n=== FILE CONTENT ===\n${userMessage.file.content}\n=== END FILE CONTENT ===` : 
         userMessage.content;
       
+      console.log('📤 Regenerating response (STREAMING):', analyzeBody.substring(0, 100) + '...');
+      
+      // Use streaming API like handleSendMessage
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: analyzeBody, session_id: currentConversationId }),
+        body: JSON.stringify({ 
+          message: analyzeBody, 
+          session_id: currentConversationId,
+          streaming: true
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Analysis failed: ${await response.text()}`);
+        const errorText = await response.text();
+        console.error('❌ Analysis failed:', errorText);
+        throw new Error(`Analysis failed: ${errorText}`);
       }
 
-      const data = await response.json();
+      // Create placeholder assistant message
+      const assistantMessageId = Date.now() + 1;
+      let streamingContent = '';
       
       const newAssistantMessage: Message = {
-        id: Date.now() + 1,
+        id: assistantMessageId,
         type: 'assistant',
-        content: data.response || 'I apologize, but I encountered an error processing your request.',
-        analysis: data.analysis || null,
-        timestamp: new Date()
+        content: '',
+        analysis: null,
+        timestamp: new Date(),
+        isStreaming: true
       };
 
-      updateCurrentMessages([...updatedMessages, newAssistantMessage]);
+      // Add assistant message immediately with empty content
+      const messagesWithStreaming = [...updatedMessages, newAssistantMessage];
+      updateCurrentMessages(messagesWithStreaming, currentConversationId);
+      console.log('📝 Created streaming assistant message placeholder for regeneration');
+      
+      // Mark as streaming
+      isStreamingRef.current = true;
+
+      // Read the stream
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log('✅ Stream complete');
+          isStreamingRef.current = false;
+          setIsLoading(false);
+          
+          if (streamingContent && !messagesWithStreaming.find(m => m.id === assistantMessageId && !m.isStreaming)) {
+            const finalMessages = [...updatedMessages, {
+              id: assistantMessageId,
+              type: 'assistant' as const,
+              content: streamingContent,
+              analysis: null,
+              timestamp: new Date(),
+              isStreaming: false
+            }];
+            updateCurrentMessages(finalMessages, currentConversationId);
+          }
+          break;
+        }
+
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Parse SSE format (data: {json}\n\n)
+        const lines = buffer.split('\n');
+        
+        // Keep the last incomplete line in buffer
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6).trim();
+              const data = JSON.parse(jsonStr);
+              
+              if (data.chunk) {
+                streamingContent += data.chunk;
+                
+                const messagesWithUpdatedContent = [...updatedMessages, {
+                  id: assistantMessageId,
+                  type: 'assistant' as const,
+                  content: streamingContent,
+                  analysis: null,
+                  timestamp: new Date(),
+                  isStreaming: true
+                }];
+                
+                updateCurrentMessages(messagesWithUpdatedContent, currentConversationId);
+                setForceRender(prev => prev + 1);
+              }
+              
+              if (data.done) {
+                console.log('✅ Streaming done signal received');
+                isStreamingRef.current = false;
+                setIsLoading(false);
+                
+                const finalMessages = [...updatedMessages, {
+                  id: assistantMessageId,
+                  type: 'assistant' as const,
+                  content: data.full_response || streamingContent,
+                  analysis: data.analysis || null,
+                  timestamp: new Date(),
+                  isStreaming: false
+                }];
+                
+                updateCurrentMessages(finalMessages, currentConversationId);
+                console.log('✅ Final content length:', (data.full_response || streamingContent).length);
+              }
+              
+              if (data.error) {
+                console.error('❌ Stream error:', data.error);
+                throw new Error(data.error);
+              }
+            } catch (parseError) {
+              console.error('Failed to parse SSE data:', parseError, 'Line:', line);
+            }
+          }
+        }
+      }
+
     } catch (error) {
-      console.error('Regenerate error:', error);
-      alert('Failed to regenerate response: ' + (error as Error).message);
+      console.error('❌ Regenerate error:', error);
+      isStreamingRef.current = false;
+      setIsLoading(false);
       
       const errorMessage: Message = {
         id: Date.now() + 1,
@@ -482,54 +597,207 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
         timestamp: new Date()
       };
 
-      updateCurrentMessages([...updatedMessages, errorMessage]);
+      updateCurrentMessages([...updatedMessages, errorMessage], currentConversationId);
     } finally {
+      isStreamingRef.current = false;
       setIsLoading(false);
     }
   };
 
   const handleEditLastUserMessage = async (newText: string) => {
+    console.log('✏️ Editing last user message:', newText);
+    
     try {
+      // Find the last user message index
       let lastUserIdx = -1;
       for (let i = messages.length - 1; i >= 0; i--) {
-        if (messages[i].type === 'user') { lastUserIdx = i; break; }
+        if (messages[i].type === 'user') { 
+          lastUserIdx = i; 
+          break; 
+        }
       }
-      if (lastUserIdx === -1) return;
+      if (lastUserIdx === -1) {
+        console.error('❌ No user message found to edit');
+        return;
+      }
 
+      // Update the user message with new text
       const editedUser = { ...messages[lastUserIdx], content: newText };
+      
+      // Remove all messages after the edited user message (including old assistant response)
       const updatedMessages = messages.slice(0, lastUserIdx);
       updatedMessages.push(editedUser);
 
-      updateCurrentMessages(updatedMessages);
+      console.log('📝 Updated messages (removed old assistant response):', updatedMessages.length);
+      updateCurrentMessages(updatedMessages, currentConversationId);
       setIsLoading(true);
+      setForceRender(prev => prev + 1);
 
+      // Prepare the message body
       const analyzeBody = editedUser.file ? 
         `${editedUser.content}\n\n=== FILE CONTENT ===\n${editedUser.file.content || ''}\n=== END FILE CONTENT ===` : 
         editedUser.content;
 
+      console.log('📤 Sending edited message to analyze (STREAMING):', analyzeBody.substring(0, 100) + '...');
+
+      // Use streaming API like handleSendMessage
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: analyzeBody, session_id: currentConversationId })
+        body: JSON.stringify({ 
+          message: analyzeBody, 
+          session_id: currentConversationId,
+          streaming: true
+        })
       });
-      if (!response.ok) {
-        throw new Error(`Analysis failed: ${await response.text()}`);
-      }
-      const data = await response.json();
 
-      const newAssistantMessage: Message = {
-        id: Date.now() + 1,
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Analysis failed:', errorText);
+        throw new Error(`Analysis failed: ${errorText}`);
+      }
+
+      // Create placeholder assistant message
+      const assistantMessageId = Date.now() + 1;
+      let streamingContent = '';
+      
+      const assistantMessage: Message = {
+        id: assistantMessageId,
         type: 'assistant',
-        content: data.response || 'I apologize, but I encountered an error processing your request.',
-        analysis: data.analysis || null,
-        timestamp: new Date()
+        content: '',
+        analysis: null,
+        timestamp: new Date(),
+        isStreaming: true
       };
 
-      updateCurrentMessages([...updatedMessages, newAssistantMessage]);
+      // Add assistant message immediately with empty content
+      const messagesWithStreaming = [...updatedMessages, assistantMessage];
+      updateCurrentMessages(messagesWithStreaming, currentConversationId);
+      console.log('📝 Created streaming assistant message placeholder');
+      
+      // Mark as streaming
+      isStreamingRef.current = true;
+
+      // Read the stream
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log('✅ Stream complete');
+          isStreamingRef.current = false;
+          setIsLoading(false);
+          
+          if (streamingContent && !messagesWithStreaming.find(m => m.id === assistantMessageId && !m.isStreaming)) {
+            const finalMessages = [...updatedMessages, {
+              id: assistantMessageId,
+              type: 'assistant' as const,
+              content: streamingContent,
+              analysis: null,
+              timestamp: new Date(),
+              isStreaming: false
+            }];
+            updateCurrentMessages(finalMessages, currentConversationId);
+          }
+          break;
+        }
+
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Parse SSE format (data: {json}\n\n)
+        const lines = buffer.split('\n');
+        
+        // Keep the last incomplete line in buffer
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6).trim();
+              const data = JSON.parse(jsonStr);
+              
+              if (data.chunk) {
+                streamingContent += data.chunk;
+                
+                const messagesWithUpdatedContent = [...updatedMessages, {
+                  id: assistantMessageId,
+                  type: 'assistant' as const,
+                  content: streamingContent,
+                  analysis: null,
+                  timestamp: new Date(),
+                  isStreaming: true
+                }];
+                
+                updateCurrentMessages(messagesWithUpdatedContent, currentConversationId);
+                setForceRender(prev => prev + 1);
+              }
+              
+              if (data.done) {
+                console.log('✅ Streaming done signal received');
+                isStreamingRef.current = false;
+                setIsLoading(false);
+                
+                const finalMessages = [...updatedMessages, {
+                  id: assistantMessageId,
+                  type: 'assistant' as const,
+                  content: data.full_response || streamingContent,
+                  analysis: data.analysis || null,
+                  timestamp: new Date(),
+                  isStreaming: false
+                }];
+                
+                updateCurrentMessages(finalMessages, currentConversationId);
+                console.log('✅ Final content length:', (data.full_response || streamingContent).length);
+              }
+              
+              if (data.error) {
+                console.error('❌ Stream error:', data.error);
+                throw new Error(data.error);
+              }
+            } catch (parseError) {
+              console.error('Failed to parse SSE data:', parseError, 'Line:', line);
+            }
+          }
+        }
+      }
+
     } catch (e) {
-      console.error('Edit-resend failed:', e);
-      alert('Failed to resend edited message.');
+      console.error('❌ Edit-resend failed:', e);
+      isStreamingRef.current = false;
+      setIsLoading(false);
+      
+      // Find the last user message index again for error handling
+      let lastUserIdx = -1;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].type === 'user') { 
+          lastUserIdx = i; 
+          break; 
+        }
+      }
+      
+      if (lastUserIdx !== -1) {
+        const editedUser = { ...messages[lastUserIdx], content: newText };
+        const updatedMessages = messages.slice(0, lastUserIdx);
+        updatedMessages.push(editedUser);
+        
+        const errorMessage: Message = {
+          id: Date.now() + 1,
+          type: 'assistant',
+          content: 'I apologize, but I encountered an error processing your edited message. Please try again.',
+          isError: true,
+          timestamp: new Date()
+        };
+
+        updateCurrentMessages([...updatedMessages, errorMessage], currentConversationId);
+      } else {
+        alert('Failed to resend edited message: ' + (e as Error).message);
+      }
     } finally {
+      isStreamingRef.current = false;
       setIsLoading(false);
     }
   };
@@ -537,7 +805,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
   // If no current conversation, show homepage with centered input - Grok style
   if (!currentConversationId) {
     return (
-      <div className="flex flex-col h-full bg-chatgpt-bg dark:bg-chatgpt-dark-bg relative overflow-hidden">
+      <div className="flex flex-col h-full bg-transparent relative overflow-hidden">
         <div className="flex-1 flex flex-col items-center justify-center relative z-10">
           <div className="w-full max-w-4xl px-6 flex flex-col items-center">
             {/* Clean EyeQ Logo */}
@@ -566,51 +834,39 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
               </div>
             </div>
 
-            {/* Action Buttons - Grok style */}
-            <div className="flex flex-wrap gap-3 justify-center items-center w-full max-w-2xl">
+            {/* Ready-made Prompt Examples */}
+            <div className="flex flex-wrap gap-2.5 justify-center items-center w-full max-w-2xl">
               <button
-                onClick={() => {
-                  // TODO: Implement DeepSearch functionality
-                  console.log('DeepSearch clicked');
-                }}
+                onClick={() => handleSendMessage('Review this promotional claim and tell me if it meets Medical, Legal, and Regulatory standards. Flag what needs revision and propose compliant alternatives.')}
                 disabled={isLoading}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-chatgpt-bg-secondary dark:bg-chatgpt-dark-bg-secondary hover:bg-chatgpt-bg-tertiary dark:hover:bg-chatgpt-dark-bg-tertiary border border-chatgpt-border dark:border-chatgpt-dark-border text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#003595] dark:bg-[#212121] hover:bg-[#002a7a] dark:hover:bg-[#1a1a1a] border border-[#003595] dark:border-[#1a1a1a] text-white dark:text-white transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="text-sm font-medium">DeepSearch</span>
+                <FileText size={16} className="text-white dark:text-white flex-shrink-0" />
+                <span className="text-xs font-medium text-white dark:text-white text-center">Check MLR Compliance</span>
               </button>
               <button
-                onClick={() => {
-                  // TODO: Implement Create Image functionality
-                  console.log('Create Image clicked');
-                }}
+                onClick={() => handleSendMessage('Take this draft and rewrite it into a version that would pass a standard MLR review without losing the main message.')}
                 disabled={isLoading}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-chatgpt-bg-secondary dark:bg-chatgpt-dark-bg-secondary hover:bg-chatgpt-bg-tertiary dark:hover:bg-chatgpt-dark-bg-tertiary border border-chatgpt-border dark:border-chatgpt-dark-border text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#003595] dark:bg-[#212121] hover:bg-[#002a7a] dark:hover:bg-[#1a1a1a] border border-[#003595] dark:border-[#1a1a1a] text-white dark:text-white transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Image size={18} className="text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary" />
-                <span className="text-sm font-medium">Create Image</span>
+                <Edit size={16} className="text-white dark:text-white flex-shrink-0" />
+                <span className="text-xs font-medium text-white dark:text-white text-center">Rewrite for MLR</span>
               </button>
               <button
-                onClick={() => {
-                  // TODO: Implement Pick Personas functionality
-                  console.log('Pick Personas clicked');
-                }}
+                onClick={() => handleSendMessage('Scan this draft and highlight any phrases or sections that pose MLR or promotional risk. Suggest safer wording.')}
                 disabled={isLoading}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-chatgpt-bg-secondary dark:bg-chatgpt-dark-bg-secondary hover:bg-chatgpt-bg-tertiary dark:hover:bg-chatgpt-dark-bg-tertiary border border-chatgpt-border dark:border-chatgpt-dark-border text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#003595] dark:bg-[#212121] hover:bg-[#002a7a] dark:hover:bg-[#1a1a1a] border border-[#003595] dark:border-[#1a1a1a] text-white dark:text-white transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Folder size={18} className="text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary" />
-                <span className="text-sm font-medium">Pick Personas</span>
-                <ChevronDown size={16} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary" />
+                <AlertTriangle size={16} className="text-white dark:text-white flex-shrink-0" />
+                <span className="text-xs font-medium text-white dark:text-white text-center">Detect Risk</span>
               </button>
               <button
-                onClick={() => {
-                  // TODO: Implement Voice functionality
-                  console.log('Voice clicked');
-                }}
+                onClick={() => handleSendMessage('Review the safety information I included and tell me what\'s missing based on typical regulatory expectations.')}
                 disabled={isLoading}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-chatgpt-bg-secondary dark:bg-chatgpt-dark-bg-secondary hover:bg-chatgpt-bg-tertiary dark:hover:bg-chatgpt-dark-bg-tertiary border border-chatgpt-border dark:border-chatgpt-dark-border text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#003595] dark:bg-[#212121] hover:bg-[#002a7a] dark:hover:bg-[#1a1a1a] border border-[#003595] dark:border-[#1a1a1a] text-white dark:text-white transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Mic size={18} className="text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary" />
-                <span className="text-sm font-medium">Voice</span>
+                <Shield size={16} className="text-white dark:text-white flex-shrink-0" />
+                <span className="text-xs font-medium text-white dark:text-white text-center">Check Safety Statements</span>
               </button>
             </div>
           </div>
@@ -628,7 +884,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
 
   return (
     <div 
-      className="flex flex-col h-full bg-chatgpt-bg dark:bg-chatgpt-dark-bg transition-all duration-300 relative overflow-hidden" 
+      className="flex flex-col h-full bg-transparent transition-all duration-300 relative overflow-hidden" 
       key={`chat-${currentConversationId}-${messages.length}-${forceRender}`}
     >
       {messages.length === 0 ? (
@@ -679,6 +935,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
                       onExport={handleExportConversation}
                       onEdit={handleEditLastUserMessage}
                       isLastUserMessage={message.type === 'user' && index === lastUserMessageIndex}
+                      conversationId={currentConversationId}
                     />
                   </div>
                 );
@@ -701,10 +958,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
             </div>
           </div>
           
-          {/* Modern scroll to bottom button - centered and aligned with input */}
+          {/* Modern scroll to bottom button - centered and aligned with input area */}
           {showScrollButton && (
             <div className="fixed bottom-28 left-0 right-0 flex justify-center z-10 pointer-events-none">
-              <div className="max-w-4xl w-full px-6 flex justify-center pointer-events-none">
+              <div className="max-w-[768px] w-full px-6 flex justify-center pointer-events-none">
                 <button 
                   className="p-4 rounded-2xl bg-chatgpt-bg/90 dark:bg-chatgpt-dark-bg/90 backdrop-blur-md shadow-chatgpt-lg hover:shadow-chatgpt-xl transition-all duration-300 border border-chatgpt-border/50 dark:border-chatgpt-dark-border/50 hover:scale-105 group pointer-events-auto"
                   onClick={scrollToBottomManually}

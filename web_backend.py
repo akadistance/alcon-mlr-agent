@@ -1133,6 +1133,96 @@ def comprehensive_review():
         print(traceback.format_exc())
         return jsonify({"error": f"Comprehensive review error: {str(e)}"}), 500
 
+# Feedback storage (in-memory for now, can be persisted to file/database later)
+feedback_storage = {}
+
+@app.route('/api/feedback', methods=['POST'])
+def submit_feedback():
+    """Submit user feedback (like/dislike) for agent responses"""
+    try:
+        data = request.get_json()
+        message_id = data.get('message_id')
+        message_content = data.get('message_content', '')
+        feedback_type = data.get('feedback_type')  # 'liked' or 'disliked'
+        conversation_id = data.get('conversation_id')
+        
+        if not message_id or not feedback_type:
+            return jsonify({"error": "message_id and feedback_type are required"}), 400
+        
+        if feedback_type not in ['liked', 'disliked']:
+            return jsonify({"error": "feedback_type must be 'liked' or 'disliked'"}), 400
+        
+        # Store feedback
+        feedback_entry = {
+            'message_id': message_id,
+            'message_content': message_content[:500],  # Store first 500 chars for context
+            'feedback_type': feedback_type,
+            'conversation_id': conversation_id,
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Store in memory (keyed by message_id)
+        feedback_storage[message_id] = feedback_entry
+        
+        # Also store by conversation for learning
+        if conversation_id:
+            if conversation_id not in feedback_storage:
+                feedback_storage[conversation_id] = []
+            if isinstance(feedback_storage[conversation_id], list):
+                feedback_storage[conversation_id].append(feedback_entry)
+        
+        # Save feedback to file for persistence (optional)
+        feedback_file = 'feedback_log.json'
+        try:
+            import json as json_lib
+            # Load existing feedback
+            existing_feedback = []
+            if os.path.exists(feedback_file):
+                with open(feedback_file, 'r') as f:
+                    existing_feedback = json_lib.load(f)
+            
+            # Append new feedback
+            existing_feedback.append(feedback_entry)
+            
+            # Save back to file
+            with open(feedback_file, 'w') as f:
+                json_lib.dump(existing_feedback, f, indent=2)
+        except Exception as e:
+            print(f"Warning: Could not save feedback to file: {e}")
+        
+        print(f"[FEEDBACK] {feedback_type.upper()} for message {message_id}")
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Feedback recorded: {feedback_type}",
+            "feedback_id": message_id
+        })
+        
+    except Exception as e:
+        print(f"Error in feedback endpoint: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Feedback error: {str(e)}"}), 500
+
+@app.route('/api/feedback/learn', methods=['GET'])
+def get_feedback_for_learning():
+    """Get feedback data for agent learning (can be called by agent)"""
+    try:
+        # Return recent feedback
+        feedback_file = 'feedback_log.json'
+        if os.path.exists(feedback_file):
+            import json as json_lib
+            with open(feedback_file, 'r') as f:
+                feedback_data = json_lib.load(f)
+                # Return last 50 feedback entries
+                return jsonify({
+                    "feedback": feedback_data[-50:] if len(feedback_data) > 50 else feedback_data,
+                    "total_count": len(feedback_data)
+                })
+        else:
+            return jsonify({"feedback": [], "total_count": 0})
+    except Exception as e:
+        return jsonify({"error": f"Error loading feedback: {str(e)}"}), 500
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Check system health"""

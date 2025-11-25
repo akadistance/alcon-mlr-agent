@@ -1,11 +1,6 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { Message, Conversation, UploadedFile } from './types';
 
-interface SelectedTextContext {
-  text: string;
-  sourceMessageId: number | string;
-}
-
 interface ChatContextType {
   conversations: Conversation[];
   currentConversationId: string | null;
@@ -24,9 +19,6 @@ interface ChatContextType {
   toggleConversationPin: (id: string) => void;
   clearAllConversations: () => void;
   exportConversation: (id: string) => void;
-  selectedTextContext: SelectedTextContext | null;
-  setSelectedTextContext: (context: SelectedTextContext | null) => void;
-  clearSelectedTextContext: () => void;
 }
 
 export const ChatContext = createContext<ChatContextType>({
@@ -47,9 +39,6 @@ export const ChatContext = createContext<ChatContextType>({
   toggleConversationPin: () => {},
   clearAllConversations: () => {},
   exportConversation: () => {},
-  selectedTextContext: null,
-  setSelectedTextContext: () => {},
-  clearSelectedTextContext: () => {},
 });
 
 // LocalStorage helper functions
@@ -99,7 +88,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   // Start with no current conversation (homepage state)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [selectedTextContext, setSelectedTextContext] = useState<SelectedTextContext | null>(null);
 
   // Load data from localStorage on initialization - but DON'T restore current conversation
   useEffect(() => {
@@ -365,10 +353,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   // Sort conversations with pinned first
   const sortedConversations = [...conversations].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 
-  const clearSelectedTextContext = () => {
-    setSelectedTextContext(null);
-  };
-
   return (
     <ChatContext.Provider value={{
       conversations,
@@ -387,10 +371,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       renameConversation,
       toggleConversationPin,
       clearAllConversations,
-      exportConversation,
-      selectedTextContext,
-      setSelectedTextContext,
-      clearSelectedTextContext
+      exportConversation
     }}>
       {children}
     </ChatContext.Provider>

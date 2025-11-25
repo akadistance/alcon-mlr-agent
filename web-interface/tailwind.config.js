@@ -21,18 +21,18 @@ module.exports = {
           'accent': 'var(--alcon-primary)',
           'accent-hover': 'var(--alcon-primary-hover)',
         },
-        // Dark mode colors (Grok-inspired)
+        // Dark mode colors (Grok-inspired - Deep Space)
         'chatgpt-dark': {
-          bg: '#1a1a1a',
-          'bg-secondary': '#252525',
-          'bg-tertiary': '#2a2a2a',
-          'border': '#3a3a3a',
-          'border-hover': '#404040',
+          bg: '#141414',
+          'bg-secondary': '#141414',
+          'bg-tertiary': '#181818',
+          'border': '#1a1a1a',
+          'border-hover': '#222222',
           'text-primary': '#ffffff',
-          'text-secondary': '#d0d0d0',
-          'text-tertiary': '#a0a0a0',
-          'accent': 'var(--alcon-primary)',
-          'accent-hover': 'var(--alcon-primary-hover)',
+          'text-secondary': '#aaaaaa',
+          'text-tertiary': '#b3b3b3',
+          'accent': '#00d4ff',
+          'accent-hover': '#1da1f2',
         },
         // Enterprise Color System - Warm Professional
         surface: {
