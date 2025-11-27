@@ -171,16 +171,49 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       ref={messageRef}
       className={`w-full group ${isError ? 'opacity-75' : ''}`}
     >
-      <div className={`flex w-full flex-wrap ${type === 'user' ? 'justify-end' : 'justify-start'}`}>
-        
-        <div className={`
-          transition-all duration-300
-          ${type === 'user' 
-            ? 'inline-flex max-w-[85%] rounded-2xl bg-gradient-to-br from-[#003595] to-[#1a4ba3] dark:bg-[#141414] text-white shadow-lg shadow-[#003595]/20 dark:shadow-[#1a1a1a]/50 hover:shadow-xl hover:shadow-[#003595]/30 dark:hover:shadow-[#222222]/50 hover:scale-[1.01] animate-message-in' 
-            : 'max-w-3xl w-full text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary animate-message-in'}
-          ${isError ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : ''}
-        `}>
-        <div className={`${type === 'user' ? 'px-4 py-3' : 'p-4 sm:p-5'} space-y-2 sm:space-y-3`}>
+      {isEditing && type === 'user' ? (
+        // Expanded edit mode - full width like agent responses
+        <div className="flex w-full justify-start">
+          <div className="max-w-3xl w-full animate-message-in">
+            <div className="p-4 sm:p-5 space-y-2 sm:space-y-3">
+              <div className="space-y-2">
+                <textarea
+                  ref={editRef}
+                  className="w-full bg-[#002870] text-white rounded-lg p-3 border border-white/20 focus:ring-2 focus:ring-white/50 focus:border-transparent focus:outline-none resize-none text-sm leading-relaxed overflow-y-auto"
+                  style={{ minHeight: '100px', maxHeight: '200px' }}
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex justify-end gap-2">
+                  <button 
+                    className="px-3 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors text-sm font-medium"
+                    onClick={cancelEdit}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="px-3 py-1.5 rounded-lg bg-white text-[#003595] hover:bg-white/90 transition-colors text-sm font-medium"
+                    onClick={saveEdit}
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className={`flex w-full flex-wrap ${type === 'user' ? 'justify-end' : 'justify-start'}`}>
+          
+          <div className={`
+            transition-all duration-300
+            ${type === 'user' 
+              ? 'inline-flex max-w-[85%] rounded-2xl bg-gradient-to-br from-[#003595] to-[#1a4ba3] dark:bg-[#141414] text-white shadow-lg shadow-[#003595]/20 dark:shadow-[#1a1a1a]/50 hover:shadow-xl hover:shadow-[#003595]/30 dark:hover:shadow-[#222222]/50 hover:scale-[1.01] animate-message-in' 
+              : 'max-w-3xl w-full text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary animate-message-in'}
+            ${isError ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : ''}
+          `}>
+          <div className={`${type === 'user' ? 'px-4 py-3' : 'p-4 sm:p-5'} space-y-2 sm:space-y-3`}>
           {/* Render attachments as clean cards (ChatGPT style) - Only for user messages */}
           {type === 'user' && message.attachments && message.attachments.length > 0 && (
             <div className="space-y-2 mb-2">
@@ -226,34 +259,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             </div>
           )}
 
-          <div className={`${isEditing && type === 'user' ? 'space-y-2' : ''}`}>
+          <div>
             {type === 'user' ? (
-              isEditing ? (
-                <div className="space-y-2">
-                  <textarea
-                    ref={editRef}
-                    className="w-full bg-[#002870] text-white rounded-lg p-3 border border-white/20 focus:ring-2 focus:ring-white/50 focus:border-transparent focus:outline-none resize-none text-sm leading-relaxed overflow-y-auto"
-                    style={{ minHeight: '100px', maxHeight: '200px' }}
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    autoFocus
-                  />
-                  <div className="flex justify-end gap-2">
-                    <button 
-                      className="px-3 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors text-sm font-medium"
-                      onClick={cancelEdit}
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      className="px-3 py-1.5 rounded-lg bg-white text-[#003595] hover:bg-white/90 transition-colors text-sm font-medium"
-                      onClick={saveEdit}
-                    >
-                      Send
-                    </button>
-                  </div>
-                </div>
-              ) : (
+              !isEditing && (
                 <div className="leading-relaxed">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {content || ''}
@@ -354,8 +362,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
+      )}
 
       {/* User action buttons row under the bubble */}
       {type === 'user' && !isEditing && (
@@ -380,8 +390,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
         </div>
       )}
-      
-      </div>
     </div>
   );
 };
