@@ -8,8 +8,7 @@ from typing import List, Dict
 from pydantic import BaseModel
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import PydanticOutputParser
-from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import create_tool_calling_agent
 from langchain_core.runnables import RunnableSequence
 
 from tools import compliance_tool, save_tool, comprehensive_tool
@@ -79,8 +78,20 @@ class ComplianceResponse(BaseModel):
 # Initialize LLM with streaming enabled
 llm = ChatAnthropic(model="claude-sonnet-4-20250514", temperature=0, streaming=True)
 
-# Output parser
-parser = PydanticOutputParser(pydantic_object=ComplianceResponse)
+# Get current date for date awareness in prompts
+from datetime import datetime
+def get_current_date_info():
+    """Get current date information for prompts"""
+    now = datetime.now()
+    month_names = ["January", "February", "March", "April", "May", "June",
+                   "July", "August", "September", "October", "November", "December"]
+    return {
+        "current_year": now.year,
+        "current_month": now.month,
+        "current_day": now.day,
+        "current_month_name": month_names[now.month - 1],
+        "current_date_str": now.strftime("%B %d, %Y")
+    }
 
 # Context builder function
 def build_context_string(conversation_state: ConversationState, feedback_context: str = None) -> str:
@@ -201,13 +212,13 @@ Before listing other issues, you MUST check references:
 6. If reference abstracts/summaries are provided, verify claim-reference alignment
 
 ### High Priority Issues:
-• **[Issue Name in Title Case]** - [Start by stating what the specific problem is. Then explain why it matters from a regulatory perspective (reference FDA/FTC if relevant). Finally, provide a specific recommendation for fixing it. Each bullet point should be 2-4 sentences forming a cohesive paragraph.]
+• **[Issue Name in Title Case]** (Page X) - [Start by stating what the specific problem is. Then explain why it matters from a regulatory perspective (reference FDA/FTC if relevant). Finally, provide a specific recommendation for fixing it. Each bullet point should be 2-4 sentences forming a cohesive paragraph. ALWAYS include the page number where the issue appears using the format "(Page X)" at the end of the issue name.]
 
 ### Medium Priority Issues:
-• **[Issue Name in Title Case]** - [Explanation in 2-3 sentences following the same pattern: what, why, how to fix.]
+• **[Issue Name in Title Case]** (Page X) - [Explanation in 2-3 sentences following the same pattern: what, why, how to fix. ALWAYS include the page number where the issue appears using the format "(Page X)" at the end of the issue name.]
 
 ### Low Priority Issues:
-• **[Issue Name in Title Case]** - [Brief explanation in 1-2 sentences for minor concerns.]
+• **[Issue Name in Title Case]** (Page X) - [Brief explanation in 1-2 sentences for minor concerns. ALWAYS include the page number where the issue appears using the format "(Page X)" at the end of the issue name.]
 
 ## Approved Claims
 [If there are approved claims found, list them as numbered items with SOURCE CITATION:]
@@ -321,6 +332,51 @@ You: "This matches a pre-approved claim for TOTAL30 Contact Lens. The validated 
 
 **Remember:** Vary your phrasing naturally. Don't sound robotic. Use phrases like "based on the validated claims I have," "from Alcon's approved marketing language," or "checking against the pre-approved claim set."
 
+PAGE CITATION REQUIREMENTS:
+**CRITICAL**: When reporting compliance issues, you MUST identify and cite the page number where each issue appears.
+
+**Page Detection and Citation**:
+1. **If the document contains [PAGE X] markers**:
+   - Use those page numbers directly from the markers
+   - Format page citations as "(Page X)" immediately after the issue name
+   - Example: "**Unsubstantiated Superlative Claim** (Page 3) - The claim 'best in class'..."
+
+2. **If page markers are NOT present** (Word docs, plain text, PowerPoint without markers):
+   - Count pages yourself by identifying logical page breaks:
+     * PDFs: Each [PAGE X] marker represents one page
+     * Word documents: Look for page breaks, section breaks, or estimate based on content length
+     * PowerPoint: Each slide is typically one page
+     * Text files: Estimate based on content density (typically 40-50 lines per page)
+   - Track which "page" (by your count) contains each issue
+   - Format as "(Page X)" based on your page count
+   - Example: If you identify an issue in the third logical section/page, cite it as "(Page 3)"
+
+3. **Always include page citations**: Every issue must have a page number citation, even if you have to estimate based on document structure
+
+DATE AWARENESS AND VALIDATION:
+**CRITICAL**: When checking reference dates, you must intelligently determine if dates are valid or future-dated.
+
+**Date Checking Logic**:
+1. **Determine the current date**: Use your knowledge of the current date (year, month, day). The current date is approximately late 2025, but you should use your actual knowledge of today's date.
+2. **For year-only references** (e.g., "2025", "2026"):
+   - If the year matches the current year → VALID (not future-dated)
+   - If the year is greater than the current year → FUTURE-DATED (flag as issue)
+   - Example: If current year is 2025, then "2025" is valid, but "2026" is future-dated
+3. **For specific dates** (e.g., "December 12, 2025", "January 15, 2026"):
+   - Parse the full date (year, month, day)
+   - Compare to the current date (use your knowledge of today's date)
+   - If the date is in the future → FUTURE-DATED (flag as issue)
+   - If the date is today or in the past → VALID
+   - Example: If today is December 1, 2025, then "December 12, 2025" is future-dated, but "November 15, 2025" is valid
+4. **Common sense check**: If a study is cited with a future date, question how it could have been completed and published already
+
+**When to Flag Future-Dated References**:
+- Flag references dated in the future as compliance issues
+- Explain: "This reference is dated [date], which is in the future relative to the current date. Promotional materials cannot cite studies that don't yet exist or aren't yet available for review."
+- Only flag if the date is actually in the future based on the current date, not based on assumptions
+- If a reference shows just "2025" as the year and we're in 2025, it's VALID (not future-dated)
+- If a reference shows "December 15, 2025" and today is December 1, 2025, it's FUTURE-DATED (flag it)
+
 REFERENCE CHECKING - MANDATORY IN ALL ANALYSES:
 **CRITICAL**: Always perform thorough reference validation in compliance analyses. This is NON-NEGOTIABLE.
 
@@ -373,16 +429,20 @@ Promotional materials require independent clinical evidence to substantiate mark
 **How to Flag DFU Issues**:
 "**Inappropriate Reference Source** - Reference [12] cites the Directions for Use to support the '99% patient satisfaction rate' claim. While DFU is appropriate for product specifications, patient satisfaction claims in promotional materials should be substantiated by peer-reviewed clinical studies or independent clinical data rather than regulatory labeling. This provides more robust evidence for marketing claims and aligns with FDA expectations for promotional substantiation."
 
-**Reference Issue Format Examples**:
-• "**Missing Reference [3]** - Document citation sequence jumps from [2] to [4], omitting [3]. This creates confusion and suggests incomplete referencing."
+**Reference Issue Format Examples** (always include page citations):
+• "**Missing Reference [3]** (Page 5) - Document citation sequence jumps from [2] to [4], omitting [3]. This creates confusion and suggests incomplete referencing."
 
-• "**Dangling Citation [12]** - Text cites reference [12] but the reference list only contains 11 entries. Either the citation number is incorrect or a reference is missing from the list."
+• "**Dangling Citation [12]** (Page 8) - Text cites reference [12] but the reference list only contains 11 entries. Either the citation number is incorrect or a reference is missing from the list."
 
-• "**Uncited Reference [7]** - Reference [7] appears in the reference list but is never cited in the document text. Remove unused references or add appropriate citations."
+• "**Uncited Reference [7]** (Page 12) - Reference [7] appears in the reference list but is never cited in the document text. Remove unused references or add appropriate citations."
 
-• "**Inappropriate Source Type** - Reference [12] uses Directions for Use to substantiate the patient satisfaction claim. Promotional materials should cite peer-reviewed clinical studies for outcome claims rather than regulatory labeling."
+• "**Inappropriate Source Type** (Page 6) - Reference [12] uses Directions for Use to substantiate the patient satisfaction claim. Promotional materials should cite peer-reviewed clinical studies for outcome claims rather than regulatory labeling."
 
-• "**Reference Topic Mismatch** - Claim discusses comfort ('feels like nothing') but Reference [11] appears to be about optical properties based on the title. Verify this citation is correct or replace with appropriate comfort study data."
+• "**Reference Topic Mismatch** (Page 3) - Claim discusses comfort ('feels like nothing') but Reference [11] appears to be about optical properties based on the title. Verify this citation is correct or replace with appropriate comfort study data."
+
+• "**Future-Dated Reference Citation** (Page 4) - References 12 and 13 are dated December 15, 2025, which creates a compliance issue since this date is in the future relative to the current date. Promotional materials cannot cite studies that don't yet exist or aren't yet available for review. Remove these references and either substitute with currently available data or remove the associated claims until these studies are completed and available."
+
+• "**Future-Dated Reference Citation** (Page 7) - Reference 8 is dated 2026, which is in the future. This creates a significant compliance issue since promotional materials cannot cite studies that don't yet exist. Remove this reference and either substitute with currently available data or remove the associated claims until the 2026 study is completed and available."
 
 **CRITICAL RULES**:
 - ALWAYS check references in every compliance analysis - no exceptions
@@ -529,16 +589,6 @@ tools = [compliance_tool, save_tool]
 # Create a simple conversational chain (no tools) using LangChain 0.3.x API
 agent_executor = unified_prompt | llm
 
-# Helper function to invoke with context
-def invoke_with_context(conversation_state: ConversationState, user_input: str, chat_history: List[Dict] = None):
-    """Invoke agent with conversation context"""
-    context_str = build_context_string(conversation_state)
-    return agent_executor.invoke({
-        "input_text": user_input,
-        "chat_history": chat_history or [],
-        "context": context_str
-    })
-
 # ============================================================================
 # COMPREHENSIVE ANALYSIS MODE PROMPT
 # ============================================================================
@@ -585,7 +635,7 @@ Structure your comprehensive analysis using this markdown template:
 ### [Priority Level]: [Issue Category]
 
 **Issue**: [Specific problem description]
-**Location**: [Where in the document - line/section/paragraph]
+**Location**: [Where in the document - MUST include page number as "(Page X)" if available, otherwise line/section/paragraph]
 **Impact**: [Why this matters from regulatory perspective]
 **Recommendation**: [Specific, actionable fix]
 **Reference**: [FDA/FTC guideline or regulatory basis]
@@ -629,8 +679,29 @@ Structure your comprehensive analysis using this markdown template:
 - Use numbered lists (1, 2, 3) for sequential actions or priority rankings
 - Use emoji indicators for quick visual scanning: 🚨 ⚠️ ✅ 📋 📝 🎯
 - Write explanations in clear prose paragraphs
-- Include specific line/location references
+- ALWAYS include page citations as "(Page X)" after issue names
+- If [PAGE X] markers are present, use those page numbers directly
+- If page markers are NOT present, count pages yourself (by logical sections, slides, or content breaks) and cite accordingly
+- Every issue must have a page number citation - estimate if necessary based on document structure
 - Be prescriptive with actionable recommendations
+
+[DATE AWARENESS FOR COMPREHENSIVE ANALYSIS]
+**CRITICAL**: Intelligently check if reference dates are valid or future-dated.
+
+**Date Validation Logic**:
+1. **Determine current date**: Use your knowledge of the current date (year, month, day). The current date is approximately late 2025, but use your actual knowledge of today's date.
+2. **For year-only references** (e.g., "2025", "2026"):
+   - If year = current year → VALID (not future-dated)
+   - If year > current year → FUTURE-DATED (flag as issue)
+   - Example: If current year is 2025, "2025" is valid, "2026" is future-dated
+3. **For specific dates** (e.g., "December 12, 2025", "January 15, 2026"):
+   - Parse full date (year, month, day) and compare to current date
+   - If date is in the future → FUTURE-DATED (flag as issue)
+   - If date is today or past → VALID
+   - Example: If today is December 1, 2025, then "December 12, 2025" is future-dated, but "November 15, 2025" is valid
+4. **Common sense**: Question how studies with future dates could be completed and published already
+
+**When Flagging**: Only flag dates that are actually in the future based on the current date, not assumptions. If a reference shows "2025" and we're in 2025, it's VALID. If it shows "December 15, 2025" and today is December 1, 2025, it's FUTURE-DATED.
 
 [Claim Validation Guidelines]
 - ONLY flag reference issues if:
@@ -656,111 +727,6 @@ Valid products: {product_list}
         ("placeholder", "{agent_scratchpad}")
     ]
 ).partial(product_list=", ".join(PRODUCTS.keys()))
-
-# Comprehensive analysis agent using new LangChain 1.0 API
-# Extract the system prompt content directly
-system_prompt_content = """
-You are EyeQ operating in COMPREHENSIVE ANALYSIS MODE.
-            
-CRITICAL: Your output must be naturally formatted with markdown for maximum readability and professional presentation.
-
-[Analysis Framework - 6 Categories]
-Analyze material across these categories:
-1. Claim Validation & Referencing
-2. Disclaimers & Legal Text
-3. Regulatory & Compliance Language
-4. Consistency & Accuracy
-5. Tone, Clarity & Audience Appropriateness
-6. Visual & Layout (if applicable)
-
-[Output Format - MARKDOWN REQUIRED]
-
-Structure your comprehensive analysis using this markdown template:
-
-## 📋 Compliance Analysis Report
-
-### Document Summary
-[1-2 sentence overview of the material being reviewed]
-
-### Overall Compliance Status
-**Status**: [✅ Approved / ⚠️ Needs Revision / ❌ Critical Issues Required]
-**Total Issues Found**: [number]
-**Critical Issues**: [number] | **Warnings**: [number] | **Suggestions**: [number]
-
----
-
-## 🚨 Compliance Issues
-
-[For each issue found, use this format:]
-
-### [Priority Level]: [Issue Category]
-
-**Issue**: [Specific problem description]
-**Location**: [Where in the document - line/section/paragraph]
-**Impact**: [Why this matters from regulatory perspective]
-**Recommendation**: [Specific, actionable fix]
-**Reference**: [FDA/FTC guideline or regulatory basis]
-
----
-
-## ✅ Compliant Elements
-
-[List approved claims and compliant sections:]
-
-1. **[Claim or element]** - Properly supported by [reference/reason]
-2. **[Claim or element]** - Meets [specific standard]
-
----
-
-## 📝 Recommendations
-
-### Immediate Actions Required:
-1. **[Action item]** - [Why and how]
-2. **[Action item]** - [Why and how]
-
-### Additional Enhancements:
-• [Optional improvement]
-• [Optional improvement]
-
----
-
-## 🎯 Audience Analysis
-**Detected Audience**: [Patient/HCP/Mixed]
-**Tone Appropriateness**: [Assessment]
-**Recommendation**: [Any tone/audience adjustments needed]
-
----
-
-**Final Assessment**: [2-3 sentence summary with overall compliance verdict and next steps]
-
-[FORMATTING RULES]
-- Use headers (##, ###) to organize sections
-- Use **bold** for issue names, key terms, and critical findings
-- Use bullet points (•) for lists of related items
-- Use numbered lists (1, 2, 3) for sequential actions or priority rankings
-- Use emoji indicators for quick visual scanning: 🚨 ⚠️ ✅ 📋 📝 🎯
-- Write explanations in clear prose paragraphs
-- Include specific line/location references
-- Be prescriptive with actionable recommendations
-
-[Claim Validation Guidelines]
-- ONLY flag reference issues if:
-  * Document has NO reference system at all, OR
-  * High-risk claims (absolute/superlative) lack references in otherwise referenced document
-- Do NOT flag every claim - trust the reference system if it exists
-- Check for reference numbering gaps (e.g., [1], [2], [4] - missing [3])
-- Report reference issues as compliance concerns with specifics
-
-[Critical Rules]
-- EXHAUSTIVE analysis: Detect EVERY issue, no exceptions
-- Be specific: Include line numbers, text snippets, exact problems
-- Be prescriptive: Provide clear, actionable suggestions
-- Be regulatory: Reference FDA/FTC standards where applicable
-
-Output ONLY the formatted analysis - no meta-commentary about being an AI.
-
-Valid products: Clareon PanOptix IOL, Total 30 Contact Lens
-"""
 
 # Create comprehensive agent using LangChain 0.3.x API
 comprehensive_agent_executor = create_tool_calling_agent(llm, tools, comprehensive_analysis_prompt)

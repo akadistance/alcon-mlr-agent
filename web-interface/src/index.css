@@ -381,6 +381,42 @@ code {
   background: var(--accent);
 }
 
+/* Sidebar scrollbar - thinner and Alcon blue on hover in dark mode */
+.sidebar-container ::-webkit-scrollbar {
+  width: 2px;
+}
+
+.dark .sidebar-container ::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+.dark .sidebar-container ::-webkit-scrollbar-thumb:hover {
+  background: #003595;
+}
+
+/* Light mode sidebar scrollbar - also thinner */
+.sidebar-container ::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+.sidebar-container ::-webkit-scrollbar-thumb:hover {
+  background: #003595;
+}
+
+/* Firefox scrollbar for sidebar */
+.sidebar-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--secondary-bg);
+}
+
+.dark .sidebar-container {
+  scrollbar-color: var(--border) var(--secondary-bg);
+}
+
+.sidebar-container:hover {
+  scrollbar-color: #003595 var(--secondary-bg);
+}
+
 /* Global input field reset and styling */
 input, textarea, select, button {
   margin: 0;
@@ -603,6 +639,35 @@ textarea:focus, button:focus, input:focus {
   100% {
     transform: translateX(100%) translateY(100%) rotate(45deg);
   }
+}
+
+/* EyeQ Logo Animations */
+@keyframes eyeScan {
+  0%, 100% { 
+    transform: translateY(0); 
+    opacity: 0; 
+  }
+  50% { 
+    transform: translateY(80px); 
+    opacity: 1; 
+  }
+}
+
+@keyframes textShimmer {
+  0%, 100% { 
+    background-position: 0% 50%; 
+  }
+  50% { 
+    background-position: 100% 50%; 
+  }
+}
+
+.eye-scan-animation {
+  animation: eyeScan 3s ease-in-out infinite;
+}
+
+.text-shimmer-animation {
+  animation: textShimmer 3s ease-in-out infinite;
 }
 
 /* Animation utility classes */

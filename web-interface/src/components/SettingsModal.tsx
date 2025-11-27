@@ -1,7 +1,7 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { ThemeContext } from '../ThemeContext';
 import { ChatContext } from '../ChatContext';
-import { X, Moon, Sun, Download, Trash2 } from 'lucide-react';
+import { X, Moon, Sun, Download, Trash2, Send } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -11,6 +11,9 @@ interface SettingsModalProps {
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
   const { conversations, clearAllConversations } = useContext(ChatContext);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackType, setFeedbackType] = useState<'bug' | 'suggestion' | 'other'>('bug');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   const handleClearAllChats = () => {
     if (window.confirm('Are you sure you want to clear all chat history? This action cannot be undone.')) {
@@ -27,6 +30,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     a.download = `eyeq-chats-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleSubmitFeedback = () => {
+    if (!feedbackText.trim()) {
+      alert('Please enter your feedback before submitting.');
+      return;
+    }
+
+    // In a real application, this would send to a backend API
+    // For now, we'll just show a confirmation
+    const feedbackData = {
+      type: feedbackType,
+      message: feedbackText,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      version: '2.0.0'
+    };
+
+    console.log('Feedback submitted:', feedbackData);
+    
+    // Show success message
+    setFeedbackSubmitted(true);
+    setFeedbackText('');
+    
+    // Reset after 3 seconds
+    setTimeout(() => {
+      setFeedbackSubmitted(false);
+    }, 3000);
   };
 
   if (!isOpen) return null;
@@ -118,6 +149,82 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 Clear All Chats
               </button>
             </div>
+          </div>
+
+          {/* Feedback Section */}
+          <div className="mb-6 last:mb-0">
+            <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-3 uppercase tracking-wider">
+              Feedback & Support
+            </h3>
+            {feedbackSubmitted ? (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+                <p className="text-sm text-green-800 dark:text-green-300 font-medium">
+                  ✓ Thank you! Your feedback has been submitted.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Feedback Type
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setFeedbackType('bug')}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        feedbackType === 'bug'
+                          ? 'bg-[#003595] text-white'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                      }`}
+                    >
+                      Bug Report
+                    </button>
+                    <button
+                      onClick={() => setFeedbackType('suggestion')}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        feedbackType === 'suggestion'
+                          ? 'bg-[#003595] text-white'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                      }`}
+                    >
+                      Suggestion
+                    </button>
+                    <button
+                      onClick={() => setFeedbackType('other')}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        feedbackType === 'other'
+                          ? 'bg-[#003595] text-white'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                      }`}
+                    >
+                      Other
+                    </button>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Your Feedback
+                  </label>
+                  <textarea
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    placeholder={`Describe the ${feedbackType === 'bug' ? 'issue' : feedbackType === 'suggestion' ? 'suggestion' : 'feedback'}...`}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#003595] focus:border-transparent"
+                    rows={4}
+                  />
+                </div>
+                <button
+                  onClick={handleSubmitFeedback}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 border-none rounded-lg cursor-pointer text-sm font-medium transition-all duration-200 bg-[#003595] text-white shadow-lg hover:bg-[#002a7a] hover:-translate-y-[1px] hover:shadow-xl active:translate-y-0"
+                >
+                  <Send size={18} />
+                  Submit Feedback
+                </button>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
+                  Help us improve EyeQ by reporting issues or sharing your ideas
+                </p>
+              </>
+            )}
           </div>
 
           {/* About Section */}

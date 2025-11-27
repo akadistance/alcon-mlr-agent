@@ -8,17 +8,10 @@ providing structured feedback for unstructured conversational prompts.'''
 from dotenv import load_dotenv
 import os
 import re
-import json
-from pydantic import BaseModel
-from typing import List, Dict, Any
-import tenacity
-from typing import Generator, Iterator
 
 from agent_runtime import (
     ConversationState,
-    agent_executor,
-    llm,
-    unified_prompt
+    agent_executor
 )
 
 # Load environment variables
@@ -156,29 +149,6 @@ def run_conversation():
             conversation_state.add_message("assistant", response)
 
 # ComplianceResponse, prompt, llm, and agent setup are imported from agent_runtime
-
-# Add this new unified handler function
-def unified_handler(user_message: str, conversation_state: ConversationState) -> str:
-    """Unified LLM-based handler for all intents"""
-    recent_history = conversation_state.get_recent_messages(limit=10)
-    
-    @tenacity.retry(
-        stop=tenacity.stop_after_attempt(3),
-        wait=tenacity.wait_exponential(multiplier=1, min=2, max=10),
-        retry=tenacity.retry_if_exception_type(Exception),
-        reraise=True
-    )
-    def invoke_llm():
-        return llm.invoke(unified_prompt.format_messages(
-            chat_history=recent_history,
-            input_text=user_message
-        ))
-    
-    response = invoke_llm()
-    
-    # If the LLM indicates compliance, trigger agent (parse from response if needed)
-    # For simplicity, assume LLM handles extraction/invocation in its reasoning; expand if needed
-    return response.content
 
 if __name__ == "__main__":
     run_conversation()

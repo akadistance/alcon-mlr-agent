@@ -808,21 +808,90 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
       <div className="flex flex-col h-full bg-transparent relative overflow-hidden">
         <div className="flex-1 flex flex-col items-center justify-center relative z-10">
           <div className="w-full max-w-4xl px-6 flex flex-col items-center">
-            {/* Clean EyeQ Logo */}
-            <div className="mb-4 flex flex-col items-center">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#003595] to-[#1a4ba3] flex items-center justify-center">
-                  <span className="text-lg font-bold text-white">E</span>
+            {/* Modern EyeQ Logo - Vision-Inspired Design */}
+            <div className="mb-10 flex flex-col items-center" data-tour="eyeq-logo">
+              <div className="flex flex-col items-center gap-4 group">
+                {/* Eye-Inspired Icon */}
+                <div className="relative">
+                  {/* Outer glow ring */}
+                  <div className="absolute inset-0 rounded-full bg-[#003595] opacity-20 blur-2xl animate-pulse"></div>
+                  
+                  {/* Main icon container */}
+                  <div className="relative w-20 h-20 flex items-center justify-center">
+                    {/* Eye shape - outer ellipse */}
+                    <svg 
+                      width="80" 
+                      height="80" 
+                      viewBox="0 0 80 80" 
+                      className="absolute inset-0"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      {/* Eye outline */}
+                      <ellipse 
+                        cx="40" 
+                        cy="40" 
+                        rx="32" 
+                        ry="20" 
+                        fill="none" 
+                        stroke="url(#eyeGradient)" 
+                        strokeWidth="2.5"
+                        className="transition-all duration-500 group-hover:stroke-[3]"
+                      />
+                      {/* Iris/Pupil */}
+                      <circle 
+                        cx="40" 
+                        cy="40" 
+                        r="12" 
+                        fill="url(#irisGradient)"
+                        className="transition-all duration-500 group-hover:r-[14]"
+                      />
+                      {/* Highlight */}
+                      <circle 
+                        cx="45" 
+                        cy="35" 
+                        r="4" 
+                        fill="rgba(255,255,255,0.6)"
+                        className="transition-opacity duration-300 group-hover:opacity-80"
+                      />
+                      {/* Gradient definitions */}
+                      <defs>
+                        <linearGradient id="eyeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#003595" />
+                          <stop offset="50%" stopColor="#1a4ba3" />
+                          <stop offset="100%" stopColor="#003595" />
+                        </linearGradient>
+                        <radialGradient id="irisGradient" cx="50%" cy="50%">
+                          <stop offset="0%" stopColor="#003595" />
+                          <stop offset="70%" stopColor="#1a4ba3" />
+                          <stop offset="100%" stopColor="#002a7a" />
+                        </radialGradient>
+                      </defs>
+                    </svg>
+                    
+                    {/* Animated scan line effect */}
+                    <div className="absolute inset-0 overflow-hidden rounded-full">
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent eye-scan-animation"></div>
+                    </div>
+                  </div>
+                  
+                  {/* Subtle shadow */}
+                  <div className="absolute -inset-2 rounded-full bg-[#003595] opacity-10 blur-md -z-10 group-hover:opacity-20 transition-opacity duration-300"></div>
                 </div>
-                <h1 className="text-2xl font-semibold text-chatgpt-text-primary dark:text-chatgpt-dark-text-primary">
-                  EyeQ
-                </h1>
+                
+                {/* Typography */}
+                <div className="flex flex-col items-center">
+                  <h1 className="text-5xl font-bold tracking-tight">
+                    <span className="bg-gradient-to-r from-[#003595] via-[#1a4ba3] to-[#003595] bg-clip-text text-transparent bg-[length:200%_100%] text-shimmer-animation">
+                      EyeQ
+                    </span>
+                  </h1>
+                </div>
               </div>
             </div>
 
             {/* Input Area - Compact */}
             <div className="w-full mb-4 flex justify-center">
-              <div className="w-full max-w-2xl">
+              <div className="w-full max-w-2xl" data-tour="input-area">
                 <InputArea
                   onSendMessage={handleSendMessage}
                   isLoading={isLoading}
@@ -835,7 +904,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
             </div>
 
             {/* Ready-made Prompt Examples */}
-            <div className="flex flex-wrap gap-2.5 justify-center items-center w-full max-w-2xl">
+            <div className="flex flex-wrap gap-2.5 justify-center items-center w-full max-w-2xl" data-tour="prompt-examples">
               <button
                 onClick={() => handleSendMessage('Review this promotional claim and tell me if it meets Medical, Legal, and Regulatory standards. Flag what needs revision and propose compliant alternatives.')}
                 disabled={isLoading}
@@ -960,14 +1029,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
           
           {/* Modern scroll to bottom button - centered and aligned with input area */}
           {showScrollButton && (
-            <div className="fixed bottom-28 left-0 right-0 flex justify-center z-10 pointer-events-none">
+            <div 
+              className={`fixed bottom-28 right-0 flex justify-center z-10 pointer-events-none transition-all duration-300 max-lg:left-0 ${
+                sidebarCollapsed 
+                  ? 'lg:left-[64px]' 
+                  : 'lg:left-[256px]'
+              }`}
+            >
               <div className="max-w-[768px] w-full px-6 flex justify-center pointer-events-none">
                 <button 
-                  className="p-4 rounded-2xl bg-chatgpt-bg/90 dark:bg-chatgpt-dark-bg/90 backdrop-blur-md shadow-chatgpt-lg hover:shadow-chatgpt-xl transition-all duration-300 border border-chatgpt-border/50 dark:border-chatgpt-dark-border/50 hover:scale-105 group pointer-events-auto"
+                  className="w-12 h-12 rounded-full bg-[#003595] hover:bg-[#002a7a] dark:bg-[#003595] dark:hover:bg-[#002a7a] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group pointer-events-auto flex items-center justify-center"
                   onClick={scrollToBottomManually}
                   aria-label="Scroll to bottom"
                 >
-                  <ArrowDown size={20} className="text-chatgpt-text-secondary dark:text-chatgpt-dark-text-secondary group-hover:text-alcon-blue transition-colors duration-200" />
+                  <ArrowDown size={18} className="text-white transition-colors duration-200" />
                 </button>
               </div>
             </div>

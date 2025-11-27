@@ -9,6 +9,7 @@ from flask_cors import CORS
 import json
 import os
 import uuid
+import re
 from datetime import datetime, timezone
 import traceback
 from dotenv import load_dotenv
@@ -673,19 +674,47 @@ def upload_file():
         ocr_method = None
         try:
             if file_extension == '.txt':
+                # For text files, split by page breaks or double newlines and add page markers
                 with open(filepath, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                    raw_content = f.read()
+                # Split by form feed (page break) or multiple newlines, then add page markers
+                pages = [p.strip() for p in re.split(r'\f+|\n{3,}', raw_content) if p.strip()]
+                if len(pages) > 1:
+                    page_contents = [f"[PAGE {i}]\n{page}" for i, page in enumerate(pages, start=1)]
+                    content = "\n\n".join(page_contents)
+                else:
+                    # Single page or no clear page breaks - add single page marker
+                    content = f"[PAGE 1]\n{raw_content}"
             elif file_extension == '.docx':
-                content = read_docx(filepath)
+                # Word documents - read and split by page breaks if possible
+                raw_content = read_docx(filepath)
+                # Split by form feed or multiple newlines
+                pages = [p.strip() for p in re.split(r'\f+|\n{3,}', raw_content) if p.strip()]
+                if len(pages) > 1:
+                    page_contents = [f"[PAGE {i}]\n{page}" for i, page in enumerate(pages, start=1)]
+                    content = "\n\n".join(page_contents)
+                else:
+                    # Single page or no clear page breaks - add single page marker
+                    content = f"[PAGE 1]\n{raw_content}"
             elif file_extension == '.pdf':
                 with pdfplumber.open(filepath) as pdf:
-                    content = "\n".join([page.extract_text() or "" for page in pdf.pages])
+                    # Extract text with page numbers for citation tracking
+                    page_contents = []
+                    for page_num, page in enumerate(pdf.pages, start=1):
+                        page_text = page.extract_text() or ""
+                        if page_text.strip():
+                            # Add page marker at the start of each page's content
+                            page_contents.append(f"[PAGE {page_num}]\n{page_text}")
+                    content = "\n\n".join(page_contents) if page_contents else "[PAGE 1]\n"
             elif file_extension == '.pptx':
                 prs = Presentation(filepath)
-                content = "\n".join([
-                    "\n".join([shape.text for shape in slide.shapes if hasattr(shape, "text")])
-                    for slide in prs.slides
-                ])
+                # PowerPoint slides - each slide is a "page"
+                slide_contents = []
+                for slide_num, slide in enumerate(prs.slides, start=1):
+                    slide_text = "\n".join([shape.text for shape in slide.shapes if hasattr(shape, "text")])
+                    if slide_text.strip():
+                        slide_contents.append(f"[PAGE {slide_num}]\n{slide_text}")
+                content = "\n\n".join(slide_contents) if slide_contents else "[PAGE 1]\n"
             elif is_image_file(file.filename):
                 # NEW: OCR for images (screenshots, promotional images, etc.)
                 print(f"[IMG] Image detected: {file.filename}, performing OCR...")

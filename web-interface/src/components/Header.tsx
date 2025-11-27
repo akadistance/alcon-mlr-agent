@@ -1,15 +1,18 @@
 import React, { useState, useRef } from 'react';
 import { HelpCircle, Menu, Settings } from 'lucide-react';
 import SettingsModal from './SettingsModal';
+import HelpModal from './HelpModal';
 
 // Header component - sidebar toggle moved to sidebar itself
 
 interface HeaderProps {
   onToggleSidebar: () => void;
+  onStartTour?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
+const Header: React.FC<HeaderProps> = ({ onToggleSidebar, onStartTour }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const settingsRef = useRef<HTMLButtonElement>(null);
 
   return (
@@ -28,13 +31,16 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           </div>
           <div className="flex items-center gap-1">
             <button 
+              data-tour="help-button"
               className="p-2 rounded-lg hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center" 
-              title="Help"
-              aria-label="Help"
+              title="Help & FAQ"
+              aria-label="Help & FAQ"
+              onClick={() => setIsHelpOpen(true)}
             >
               <HelpCircle size={18} className="text-gray-700 dark:text-chatgpt-dark-text-primary" />
             </button>
             <button 
+              data-tour="settings-button"
               ref={settingsRef}
               className="p-2 rounded-lg hover:bg-chatgpt-bg-secondary dark:hover:bg-chatgpt-dark-bg-secondary transition-all duration-200 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center" 
               title="Settings" 
@@ -47,6 +53,14 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         </div>
       </header>
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <HelpModal 
+        isOpen={isHelpOpen} 
+        onClose={() => setIsHelpOpen(false)} 
+        onRestartTour={() => {
+          setIsHelpOpen(false);
+          onStartTour?.();
+        }}
+      />
     </>
   );
 };

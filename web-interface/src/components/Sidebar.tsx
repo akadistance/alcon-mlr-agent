@@ -242,6 +242,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
       
       {/* Grok-style Sidebar */}
       <div className={`
+        sidebar-container
         fixed top-0 left-0 h-screen
         transition-all duration-300 ease-in-out
         bg-sidebar-surface dark:bg-sidebar-surface border-r border-sidebar-border dark:border-sidebar-border
@@ -352,6 +353,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
 
                 {/* Chat Button */}
                 <button
+                  data-tour="sidebar-chat-button"
                   className={`
                     w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
                     ${activeNav === 'chat' 
@@ -451,17 +453,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, onClose, onToggl
           {/* User profile at bottom - Grok style */}
           <div className="p-4 border-t border-sidebar-border dark:border-sidebar-border">
             {isCollapsed ? (
-              <button className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-sidebar-surface-hover dark:hover:bg-sidebar-surface-hover transition-all duration-200 min-w-[44px] min-h-[44px]">
-                <User size={20} className="text-sidebar-text-secondary dark:text-sidebar-text-secondary" />
+              <button className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-[#003595]/10 dark:hover:bg-[#003595]/20 transition-all duration-200 min-w-[44px] min-h-[44px]">
+                <div className="w-8 h-8 rounded-full bg-[#003595] flex items-center justify-center">
+                  <User size={18} className="text-white" strokeWidth={2} />
+                </div>
               </button>
             ) : (
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-sidebar-surface-hover dark:bg-sidebar-surface-hover flex items-center justify-center">
-                  <User size={18} className="text-sidebar-text-secondary dark:text-sidebar-text-secondary" />
+                <div className="w-8 h-8 rounded-full bg-[#003595] flex items-center justify-center">
+                  <User size={18} className="text-white" strokeWidth={2} />
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-sidebar-text-primary dark:text-sidebar-text-primary">User</div>
-                  <div className="text-xs text-sidebar-text-secondary dark:text-sidebar-text-secondary">user@example.com</div>
+                  <div className="text-sm font-medium text-sidebar-text-primary dark:text-sidebar-text-primary">Jason Jiwan</div>
+                  <div className="text-xs text-sidebar-text-secondary dark:text-sidebar-text-secondary">JIWANJA1@alcon.net</div>
                 </div>
               </div>
             )}
