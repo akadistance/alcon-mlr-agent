@@ -317,8 +317,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
                   isStreaming: true
                 }];
                 
+                // Direct state update - no flushSync needed with proper backend streaming
                 updateCurrentMessages(updatedMessages, conversationId);
-                setForceRender(prev => prev + 1);
               }
               
               if (data.done) {
@@ -337,6 +337,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
                 
                 updateCurrentMessages(finalMessages, conversationId);
                 console.log('✅ Final content length:', (data.full_response || streamingContent).length);
+                
+                break; // Exit the read loop immediately
               }
               
               if (data.error) {
@@ -551,8 +553,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
                   isStreaming: true
                 }];
                 
+                // Direct state update - no flushSync needed with proper backend streaming
                 updateCurrentMessages(messagesWithUpdatedContent, currentConversationId);
-                setForceRender(prev => prev + 1);
               }
               
               if (data.done) {
@@ -571,6 +573,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
                 
                 updateCurrentMessages(finalMessages, currentConversationId);
                 console.log('✅ Final content length:', (data.full_response || streamingContent).length);
+                
+                break; // Exit the read loop immediately
               }
               
               if (data.error) {
@@ -732,8 +736,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
                   isStreaming: true
                 }];
                 
+                // Direct state update - no flushSync needed with proper backend streaming
                 updateCurrentMessages(messagesWithUpdatedContent, currentConversationId);
-                setForceRender(prev => prev + 1);
               }
               
               if (data.done) {
@@ -752,6 +756,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
                 
                 updateCurrentMessages(finalMessages, currentConversationId);
                 console.log('✅ Final content length:', (data.full_response || streamingContent).length);
+                
+                break; // Exit the read loop immediately
               }
               
               if (data.error) {
@@ -1009,7 +1015,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar: _onToggl
                   </div>
                 );
               })}
-              {isLoading && (
+              {isLoading && !isStreamingRef.current && (
                 <div className="animate-message-in">
                   <MessageBubble
                     message={{

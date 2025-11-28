@@ -176,34 +176,47 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     return found || { id: '', title: '', messages: [], pinned: false, createdAt: new Date(), updatedAt: new Date() };
   };
 
+  // Debounce timer ref for localStorage saves during streaming
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
   const updateCurrentMessages = (newMessages: Message[], targetConversationId: string | null = null) => {
     // Use provided conversationId or fall back to currentConversationId
     const conversationIdToUpdate = targetConversationId || currentConversationId;
-    
-    console.log('updateCurrentMessages called with:', {
-      currentConversationId,
-      targetConversationId,
-      conversationIdToUpdate,
-      newMessagesLength: newMessages.length,
-      newMessages: newMessages
-    });
     
     if (!conversationIdToUpdate) {
       console.error('❌ No conversation ID to update messages for!');
       return;
     }
     
+    // Check if any message is currently streaming - if so, defer localStorage save
+    const isStreaming = newMessages.some(msg => (msg as any).isStreaming === true);
+    
     setConversations(prevConversations => {
       const updatedConversations = prevConversations.map(conv => {
         if (conv.id === conversationIdToUpdate) {
-          console.log('Found matching conversation, updating messages');
           return { ...conv, messages: [...newMessages], updatedAt: new Date() };
         }
         return conv;
       });
       
-      console.log('Setting updated conversations:', updatedConversations);
-      saveConversationsToLocal(updatedConversations);
+      // Only save to localStorage if NOT streaming, or debounce if streaming
+      if (!isStreaming) {
+        // Clear any pending save timeout
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+          saveTimeoutRef.current = null;
+        }
+        saveConversationsToLocal(updatedConversations);
+      } else {
+        // During streaming, debounce saves to every 500ms to avoid blocking UI
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+          saveConversationsToLocal(updatedConversations);
+          saveTimeoutRef.current = null;
+        }, 500);
+      }
       
       // Auto-rename conversation based on first user message
       const currentConv = updatedConversations.find(conv => conv.id === conversationIdToUpdate);

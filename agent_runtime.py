@@ -93,6 +93,11 @@ def get_current_date_info():
         "current_date_str": now.strftime("%B %d, %Y")
     }
 
+def get_current_date_context():
+    """Get formatted current date context string for prompts"""
+    date_info = get_current_date_info()
+    return f"The current date is {date_info['current_date_str']} (Year: {date_info['current_year']}, Month: {date_info['current_month']}, Day: {date_info['current_day']}). References dated with year {date_info['current_year']} are CURRENT and VALID, NOT future-dated."
+
 # Context builder function
 def build_context_string(conversation_state: ConversationState, feedback_context: str = None) -> str:
     """Build context string from conversation state and feedback"""
@@ -119,13 +124,16 @@ def build_context_string(conversation_state: ConversationState, feedback_context
     # Return space instead of empty string to avoid empty system message blocks
     return "\n".join(context_parts) if context_parts else " "
 
-# Unified prompt
+# Unified prompt with current date context
+current_date_context = get_current_date_context()
 unified_prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            """
+            f"""
 You are EyeQ, an expert MLR compliance assistant for Alcon ophthalmic products.
+
+CURRENT DATE CONTEXT: {current_date_context}
 
 FILE CONTENT HANDLING:
 When you receive messages with file content markers:
@@ -356,26 +364,47 @@ PAGE CITATION REQUIREMENTS:
 DATE AWARENESS AND VALIDATION:
 **CRITICAL**: When checking reference dates, you must intelligently determine if dates are valid or future-dated.
 
-**Date Checking Logic**:
-1. **Determine the current date**: Use your knowledge of the current date (year, month, day). The current date is approximately late 2025, but you should use your actual knowledge of today's date.
-2. **For year-only references** (e.g., "2025", "2026"):
-   - If the year matches the current year → VALID (not future-dated)
-   - If the year is greater than the current year → FUTURE-DATED (flag as issue)
-   - Example: If current year is 2025, then "2025" is valid, but "2026" is future-dated
-3. **For specific dates** (e.g., "December 12, 2025", "January 15, 2026"):
+**CURRENT DATE CONTEXT**: {current_date_context}
+
+**Date Checking Logic - READ CAREFULLY**:
+1. **For year-only references** (e.g., "2025", "2026", "Alcon data on file, 2025"):
+   - **CRITICAL RULE**: If the year matches the CURRENT YEAR, it is VALID and NOT future-dated
+   - Only flag as future-dated if the year is GREATER than the current year
+   - Example: If current year is 2025:
+     * "2025" → VALID (same year, NOT future-dated) ✅
+     * "Alcon data on file, 2025" → VALID (same year, NOT future-dated) ✅
+     * "2026" → FUTURE-DATED (year is greater) ❌
+   - **DO NOT FLAG** references dated with the current year as future-dated - they are current and valid
+
+2. **For specific dates** (e.g., "December 12, 2025", "January 15, 2026"):
    - Parse the full date (year, month, day)
-   - Compare to the current date (use your knowledge of today's date)
+   - Compare to the current date
    - If the date is in the future → FUTURE-DATED (flag as issue)
    - If the date is today or in the past → VALID
-   - Example: If today is December 1, 2025, then "December 12, 2025" is future-dated, but "November 15, 2025" is valid
-4. **Common sense check**: If a study is cited with a future date, question how it could have been completed and published already
+   - Example: If today is December 1, 2025:
+     * "December 12, 2025" → FUTURE-DATED (11 days in future) ❌
+     * "November 15, 2025" → VALID (in the past) ✅
+     * "2025" (year only) → VALID (current year) ✅
+
+3. **Common sense check**: If a study is cited with a future date, question how it could have been completed and published already
 
 **When to Flag Future-Dated References**:
-- Flag references dated in the future as compliance issues
-- Explain: "This reference is dated [date], which is in the future relative to the current date. Promotional materials cannot cite studies that don't yet exist or aren't yet available for review."
-- Only flag if the date is actually in the future based on the current date, not based on assumptions
-- If a reference shows just "2025" as the year and we're in 2025, it's VALID (not future-dated)
-- If a reference shows "December 15, 2025" and today is December 1, 2025, it's FUTURE-DATED (flag it)
+- **ONLY flag** if the date is actually in the future based on the current date
+- **DO NOT flag** year-only references that match the current year (e.g., "2025" when current year is 2025)
+- **DO NOT flag** references like "Alcon data on file, 2025" when current year is 2025 - this is valid current data
+- Flag references dated in the future as compliance issues with explanation: "This reference is dated [date], which is in the future relative to the current date. Promotional materials cannot cite studies that don't yet exist or aren't yet available for review."
+
+**EXAMPLES OF CORRECT BEHAVIOR**:
+- Reference: "Alcon data on file, 2025" → If current year is 2025 → VALID, do NOT flag ✅
+- Reference: "2025" → If current year is 2025 → VALID, do NOT flag ✅
+- Reference: "REF-25218, 2025" → If current year is 2025 → VALID, do NOT flag ✅
+- Reference: "2026" → If current year is 2025 → FUTURE-DATED, flag it ❌
+- Reference: "December 15, 2025" → If today is December 1, 2025 → FUTURE-DATED, flag it ❌
+
+**CRITICAL REMINDER**: 
+- If you see a reference like "Alcon data on file, 2025" or "REF-25218, 2025" and the current year is 2025, this is CURRENT DATA, NOT future-dated
+- DO NOT flag it as "Future-Dated Reference Citation"
+- Only flag if the year is GREATER than the current year (e.g., 2026 when current year is 2025)
 
 REFERENCE CHECKING - MANDATORY IN ALL ANALYSES:
 **CRITICAL**: Always perform thorough reference validation in compliance analyses. This is NON-NEGOTIABLE.
@@ -570,7 +599,7 @@ CRITICAL BEHAVIORS:
 - ALWAYS validate references thoroughly in every analysis - this is mandatory
 - Learn from user feedback to continuously improve response quality
 
-Valid products: {product_list}
+Valid products: {{product_list}}
             """
         ),
         ("placeholder", "{chat_history}"),
@@ -594,12 +623,15 @@ agent_executor = unified_prompt | llm
 # ============================================================================
 # This prompt is used when user requests detailed/comprehensive analysis
 
+# Use the same current_date_context for comprehensive analysis
 comprehensive_analysis_prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            """
+            f"""
 You are EyeQ operating in COMPREHENSIVE ANALYSIS MODE.
+
+CURRENT DATE CONTEXT: {current_date_context}
             
 CRITICAL: Your output must be naturally formatted with markdown for maximum readability and professional presentation.
 
@@ -688,20 +720,38 @@ Structure your comprehensive analysis using this markdown template:
 [DATE AWARENESS FOR COMPREHENSIVE ANALYSIS]
 **CRITICAL**: Intelligently check if reference dates are valid or future-dated.
 
-**Date Validation Logic**:
-1. **Determine current date**: Use your knowledge of the current date (year, month, day). The current date is approximately late 2025, but use your actual knowledge of today's date.
-2. **For year-only references** (e.g., "2025", "2026"):
-   - If year = current year → VALID (not future-dated)
-   - If year > current year → FUTURE-DATED (flag as issue)
-   - Example: If current year is 2025, "2025" is valid, "2026" is future-dated
-3. **For specific dates** (e.g., "December 12, 2025", "January 15, 2026"):
+**Date Validation Logic - READ CAREFULLY**:
+1. **For year-only references** (e.g., "2025", "2026", "Alcon data on file, 2025"):
+   - **CRITICAL RULE**: If the year matches the CURRENT YEAR, it is VALID and NOT future-dated
+   - Only flag as future-dated if the year is GREATER than the current year
+   - Example: If current year is 2025:
+     * "2025" → VALID (same year, NOT future-dated) ✅
+     * "Alcon data on file, 2025" → VALID (same year, NOT future-dated) ✅
+     * "REF-25218, 2025" → VALID (same year, NOT future-dated) ✅
+     * "2026" → FUTURE-DATED (year is greater) ❌
+   - **DO NOT FLAG** references dated with the current year as future-dated - they are current and valid
+
+2. **For specific dates** (e.g., "December 12, 2025", "January 15, 2026"):
    - Parse full date (year, month, day) and compare to current date
    - If date is in the future → FUTURE-DATED (flag as issue)
    - If date is today or past → VALID
-   - Example: If today is December 1, 2025, then "December 12, 2025" is future-dated, but "November 15, 2025" is valid
-4. **Common sense**: Question how studies with future dates could be completed and published already
+   - Example: If today is December 1, 2025:
+     * "December 12, 2025" → FUTURE-DATED (11 days in future) ❌
+     * "November 15, 2025" → VALID (in the past) ✅
+     * "2025" (year only) → VALID (current year) ✅
 
-**When Flagging**: Only flag dates that are actually in the future based on the current date, not assumptions. If a reference shows "2025" and we're in 2025, it's VALID. If it shows "December 15, 2025" and today is December 1, 2025, it's FUTURE-DATED.
+3. **Common sense**: Question how studies with future dates could be completed and published already
+
+**When Flagging**: 
+- **ONLY flag** if the date is actually in the future based on the current date
+- **DO NOT flag** year-only references that match the current year (e.g., "2025" when current year is 2025)
+- **DO NOT flag** references like "Alcon data on file, 2025" when current year is 2025 - this is valid current data
+- **DO NOT flag** references like "REF-25218, 2025" when current year is 2025 - this is valid current data
+
+**CRITICAL REMINDER**: 
+- If you see a reference like "Alcon data on file, 2025" or "REF-25218, 2025" and the current year is 2025, this is CURRENT DATA, NOT future-dated
+- DO NOT flag it as "Future-Dated Reference Citation"
+- Only flag if the year is GREATER than the current year (e.g., 2026 when current year is 2025)
 
 [Claim Validation Guidelines]
 - ONLY flag reference issues if:
@@ -719,7 +769,7 @@ Structure your comprehensive analysis using this markdown template:
 
 Output ONLY the formatted analysis - no meta-commentary about being an AI.
 
-Valid products: {product_list}
+Valid products: {{product_list}}
             """
         ),
         ("placeholder", "{chat_history}"),

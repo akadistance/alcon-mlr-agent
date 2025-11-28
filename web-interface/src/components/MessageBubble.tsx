@@ -32,7 +32,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isLastUserMessage = false,
   conversationId = null
 }) => {
-  const { type, content, analysis, file, isLoading, isError, isStreaming } = message;
+  const { type, content, analysis, file, isLoading, isError } = message;
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(content || '');
@@ -280,14 +280,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             )}
           </div>
 
-          {isStreaming && type === 'assistant' && (
-            <span className="inline-block w-2 h-5 bg-chatgpt-text-primary dark:bg-chatgpt-dark-text-primary animate-pulse-subtle ml-1">▋</span>
-          )}
 
           {analysis && renderAnalysis(analysis)}
 
-          {/* Action buttons for assistant messages - under the message */}
-          {type === 'assistant' && !isLoading && !isError && (
+          {/* Action buttons for assistant messages - only show after streaming completes */}
+          {type === 'assistant' && !isLoading && !isError && !message.isStreaming && (
             <div className="flex gap-2 items-center">
               {/* Feedback buttons */}
               <div className="flex gap-1 mr-1">

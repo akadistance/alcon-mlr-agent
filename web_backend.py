@@ -17,7 +17,7 @@ import pdfplumber
 from pptx import Presentation
 
 # Import shared agent runtime
-from agent_runtime import agent_executor, ConversationState, comprehensive_agent_executor
+from agent_runtime import agent_executor, ConversationState, comprehensive_agent_executor, tools, unified_prompt, llm, comprehensive_analysis_prompt
 from tools import read_docx
 
 # Import OCR utilities
@@ -449,75 +449,39 @@ def analyze():
         try:
             # Handle streaming vs non-streaming
             if streaming:
-                # Use streaming with callbacks for real-time response
+                # Use TRUE streaming - format prompt first, then stream directly from LLM
                 from flask import Response, stream_with_context
-                from langchain_core.callbacks.base import BaseCallbackHandler
-                import queue
-                import threading
-                
-                # Custom callback that puts tokens in a queue
-                class StreamingCallbackHandler(BaseCallbackHandler):
-                    def __init__(self, token_queue):
-                        self.token_queue = token_queue
-                    
-                    def on_llm_new_token(self, token: str, **kwargs):
-                        """Called when LLM generates a new token"""
-                        self.token_queue.put(token)
-                    
-                    def on_llm_end(self, response, **kwargs):
-                        """Called when LLM finishes"""
-                        self.token_queue.put(None)  # Signal completion
-                    
-                    def on_llm_error(self, error: Exception, **kwargs):
-                        """Called when LLM encounters an error"""
-                        self.token_queue.put(f"ERROR:{str(error)}")
-                        self.token_queue.put(None)
+                from agent_runtime import unified_prompt, llm
                 
                 def generate():
-                    """Generator for Server-Sent Events"""
-                    token_queue = queue.Queue()
+                    """Generator for Server-Sent Events with true token-by-token streaming"""
                     full_response = ""
                     
-                    # Create callback handler
-                    callback = StreamingCallbackHandler(token_queue)
+                    # CRITICAL: Send initial ping to establish connection and prevent buffering
+                    yield ": ping\n\n"
                     
-                    # Run LLM in separate thread
-                    def run_llm():
-                        try:
-                            agent_executor.invoke(
-                                {
-                                    "input_text": processed_message_with_context,
-                                    "chat_history": recent_history
-                                },
-                                config={"callbacks": [callback]}
-                            )
-                        except Exception as e:
-                            token_queue.put(f"ERROR:{str(e)}")
-                            token_queue.put(None)
-                    
-                    llm_thread = threading.Thread(target=run_llm)
-                    llm_thread.start()
-                    
-                    # Stream tokens as they arrive
                     try:
-                        while True:
-                            token = token_queue.get()
-                            
-                            if token is None:
-                                # LLM finished
-                                break
-                            
-                            if isinstance(token, str) and token.startswith("ERROR:"):
-                                # Error occurred
-                                error_msg = token[6:]
-                                yield f"data: {json.dumps({'error': error_msg})}\n\n"
-                                break
-                            
-                            # Send token to client
-                            full_response += token
-                            yield f"data: {json.dumps({'chunk': token})}\n\n"
+                        # Step 1: Format the prompt (this doesn't call the LLM yet)
+                        formatted_messages = unified_prompt.format_messages(
+                            input_text=processed_message_with_context,
+                            chat_history=recent_history,
+                            agent_scratchpad=[]  # Empty list for non-tool-calling mode
+                        )
                         
-                        # Store analysis in memory
+                        print(f"[STREAM] Starting token-by-token streaming...")
+                        
+                        # Step 2: Stream directly from the LLM - this yields individual tokens!
+                        for chunk in llm.stream(formatted_messages):
+                            # Each chunk is an AIMessageChunk with .content containing the token
+                            if hasattr(chunk, 'content') and chunk.content:
+                                token = chunk.content
+                                full_response += token
+                                # Send each token immediately to the client
+                                yield f"data: {json.dumps({'chunk': token})}\n\n"
+                        
+                        print(f"[STREAM] Completed - {len(full_response)} chars total")
+                        
+                        # Store analysis in memory after streaming completes
                         if any(keyword in processed_message.lower() for keyword in ['analyze', 'review', 'check', 'compliance', 'issues', 'find', 'problems', 'errors']):
                             issues = []
                             issue_matches = re.findall(r'[•\-\*]\s*\*\*(.+?)\*\*', full_response)
@@ -542,19 +506,23 @@ def analyze():
                         # Extract citations
                         citations_dict = extract_and_parse_citations(full_response)
                         
-                        # Send completion
+                        # Send completion signal with full response
                         yield f"data: {json.dumps({'done': True, 'full_response': full_response, 'citations': citations_dict})}\n\n"
                         
-                    finally:
-                        llm_thread.join(timeout=1)
+                    except Exception as e:
+                        print(f"[STREAM ERROR] {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        yield f"data: {json.dumps({'error': str(e)})}\n\n"
                 
                 return Response(
                     stream_with_context(generate()),
                     mimetype='text/event-stream',
                     headers={
-                        'Cache-Control': 'no-cache',
+                        'Cache-Control': 'no-cache, no-transform',
                         'X-Accel-Buffering': 'no',
-                        'Connection': 'keep-alive'
+                        'Connection': 'keep-alive',
+                        'Content-Type': 'text/event-stream; charset=utf-8',
                     }
                 )
             
@@ -965,70 +933,36 @@ def comprehensive_review():
         try:
             # Handle streaming vs non-streaming
             if streaming:
-                # Use streaming with callbacks for real-time comprehensive analysis
+                # Use TRUE streaming - format prompt first, then stream directly from LLM
                 from flask import Response, stream_with_context
-                from langchain_core.callbacks.base import BaseCallbackHandler
-                import queue
-                import threading
-                
-                # Custom callback that puts tokens in a queue
-                class StreamingCallbackHandler(BaseCallbackHandler):
-                    def __init__(self, token_queue):
-                        self.token_queue = token_queue
-                    
-                    def on_llm_new_token(self, token: str, **kwargs):
-                        """Called when LLM generates a new token"""
-                        self.token_queue.put(token)
-                    
-                    def on_llm_end(self, response, **kwargs):
-                        """Called when LLM finishes"""
-                        self.token_queue.put(None)  # Signal completion
                 
                 def generate():
-                    """Generator for Server-Sent Events"""
-                    token_queue = queue.Queue()
+                    """Generator for Server-Sent Events with true token-by-token streaming"""
                     full_response = ""
                     
-                    # Create callback handler
-                    callback = StreamingCallbackHandler(token_queue)
+                    # CRITICAL: Send initial ping to establish connection and prevent buffering
+                    yield ": ping\n\n"
                     
-                    # Run LLM in separate thread
-                    def run_llm():
-                        try:
-                            comprehensive_agent_executor.invoke(
-                                {
-                                    "input_text": analysis_prompt_with_context,
-                                    "chat_history": recent_history
-                                },
-                                config={"callbacks": [callback]}
-                            )
-                        except Exception as e:
-                            token_queue.put(f"ERROR:{str(e)}")
-                            token_queue.put(None)
-                    
-                    llm_thread = threading.Thread(target=run_llm)
-                    llm_thread.start()
-                    
-                    # Stream tokens as they arrive
                     try:
-                        while True:
-                            token = token_queue.get()
-                            
-                            if token is None:
-                                # LLM finished
-                                break
-                            
-                            if isinstance(token, str) and token.startswith("ERROR:"):
-                                # Error occurred
-                                error_msg = token[6:]
-                                yield f"data: {json.dumps({'error': error_msg})}\n\n"
-                                break
-                            
-                            # Send token to client
-                            full_response += token
-                            yield f"data: {json.dumps({'chunk': token})}\n\n"
+                        # Step 1: Format the comprehensive analysis prompt
+                        formatted_messages = comprehensive_analysis_prompt.format_messages(
+                            input_text=analysis_prompt_with_context,
+                            chat_history=recent_history,
+                            agent_scratchpad=[]  # Empty list for non-tool-calling mode
+                        )
                         
-                        print(f"[OK] Comprehensive analysis streaming complete ({len(full_response)} characters)")
+                        print(f"[STREAM] Starting comprehensive analysis streaming...")
+                        
+                        # Step 2: Stream directly from the LLM - this yields individual tokens!
+                        for chunk in llm.stream(formatted_messages):
+                            # Each chunk is an AIMessageChunk with .content containing the token
+                            if hasattr(chunk, 'content') and chunk.content:
+                                token = chunk.content
+                                full_response += token
+                                # Send each token immediately to the client
+                                yield f"data: {json.dumps({'chunk': token})}\n\n"
+                        
+                        print(f"[STREAM] Comprehensive analysis complete - {len(full_response)} chars")
                         
                         # Store comprehensive analysis in memory
                         issues = []
@@ -1054,16 +988,20 @@ def comprehensive_review():
                         # Send completion signal
                         yield f"data: {json.dumps({'done': True, 'full_response': full_response})}\n\n"
                         
-                    finally:
-                        llm_thread.join(timeout=1)
+                    except Exception as e:
+                        print(f"[STREAM ERROR] {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        yield f"data: {json.dumps({'error': str(e)})}\n\n"
                 
                 return Response(
                     stream_with_context(generate()),
                     mimetype='text/event-stream',
                     headers={
-                        'Cache-Control': 'no-cache',
+                        'Cache-Control': 'no-cache, no-transform',
                         'X-Accel-Buffering': 'no',
-                        'Connection': 'keep-alive'
+                        'Connection': 'keep-alive',
+                        'Content-Type': 'text/event-stream; charset=utf-8',
                     }
                 )
             
@@ -1271,6 +1209,32 @@ def health_check():
             "timestamp": datetime.now(timezone.utc).isoformat()
         }), 500
 
+@app.route('/api/test-stream', methods=['GET'])
+def test_stream():
+    """Test streaming without AI - for debugging streaming infrastructure"""
+    from flask import Response
+    import time
+    
+    def generate():
+        # Initial ping
+        yield ": ping\n\n"
+        
+        for i in range(10):
+            yield f"data: {json.dumps({'chunk': f'Token {i} '})}\n\n"
+            time.sleep(0.3)  # Simulate delay between tokens
+        yield f"data: {json.dumps({'done': True, 'full_response': 'Token 0 Token 1 Token 2 Token 3 Token 4 Token 5 Token 6 Token 7 Token 8 Token 9 '})}\n\n"
+    
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache, no-transform',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+            'Content-Type': 'text/event-stream; charset=utf-8',
+        }
+    )
+
 if __name__ == '__main__':
     print("=" * 60)
     print(" EyeQ - Web Interface (WORKING VERSION)")
@@ -1284,4 +1248,5 @@ if __name__ == '__main__':
     print(f"[START] Starting server on http://127.0.0.1:5000")
     print("=" * 60)
 
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    # IMPORTANT: threaded=True is critical for streaming to work properly
+    app.run(debug=True, host='127.0.0.1', port=5000, threaded=True)
