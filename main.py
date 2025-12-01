@@ -1,7 +1,6 @@
 '''
 Developer: Jason Jiwan
 EyeQ - Analyzes marketing content for Alcon product compliance
-Date: September 2025
 Description: Uses LangChain and Claude 4 Sonnet to analyze promotional text against approved claims and FDA/FTC guidelines,
 providing structured feedback for unstructured conversational prompts.'''   
 
