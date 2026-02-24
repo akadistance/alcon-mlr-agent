@@ -19,7 +19,7 @@ A comprehensive compliance assistant tool that uses LangChain and Anthropic's Cl
 - **Approved Claims Database**: Pre-validated claims for Clareon PanOptix IOL and Total 30 Contact Lens
 - **Issue Classifications**: Prioritizes issues by severity (critical, warning, info)
 
-## 🎯 Purpose
+## Purpose
 
 Helps marketing teams identify compliance issues before formal Medical, Legal, and Regulatory (MLR) review, reducing agency revision cycles and ensuring adherence to FDA/FTC guidelines.
 
@@ -190,5 +190,6 @@ The project uses a modular architecture:
 - **AI/ML**: LangChain, Anthropic Claude Sonnet 4
 - **Document Processing**: python-docx, pdfplumber, python-pptx
 - **Data**: Pydantic for structured responses
+
 
 
