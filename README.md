@@ -2,7 +2,7 @@
 
 A comprehensive compliance assistant tool that uses LangChain and Anthropic's Claude Sonnet 4 to analyze promotional text for Alcon products (Clareon PanOptix IOL and Total 30 Contact Lens), checking against approved claims and FDA/FTC guidelines.
 
-## ✨ Features
+## Features
 
 ### Core Capabilities
 - **Command-line interface** for text analysis with streaming responses
@@ -190,4 +190,5 @@ The project uses a modular architecture:
 - **AI/ML**: LangChain, Anthropic Claude Sonnet 4
 - **Document Processing**: python-docx, pdfplumber, python-pptx
 - **Data**: Pydantic for structured responses
+
 
