@@ -191,14 +191,3 @@ The project uses a modular architecture:
 - **Document Processing**: python-docx, pdfplumber, python-pptx
 - **Data**: Pydantic for structured responses
 
-## License
-
-[Add license information here]
-
-## Contributing
-
-[Add contributing guidelines here]
-
-## Contact
-
-[Add contact information here]
